@@ -164,3 +164,8 @@ Thumbs.db
 # MLflow
 mlflow.db
 mlruns/
+
+# Credentials
+credentials.json
+
+*.db

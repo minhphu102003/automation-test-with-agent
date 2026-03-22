@@ -49,11 +49,21 @@ To view detailed metrics, including token usage and estimated USD costs:
 2. Open [http://localhost:5000](http://localhost:5000) in your browser.
 3. Select the **"Browser Automation Tests"** experiment from the left sidebar.
 
-### Cost Calculation
-Pricing is configured in `config/pricing.py`. The suite currently tracks:
-- **Prompt Tokens**: Input tokens used per step.
-- **Completion Tokens**: Output tokens generated per step.
-- **Total Cost**: Estimated USD based on model-specific pricing.
+## 📁 Data-Driven Testing (Google Sheets)
+
+The suite can read tasks from a Google Sheet to perform large-scale automation tests.
+
+### Quick Setup:
+1.  **Credentials**: Place `credentials.json` in the root directory.
+2.  **Verify**: Run the verification script:
+    ```powershell
+    uv run python tests/verify_sheets.py
+    ```
+3.  **Detailed Guide**: Follow the [Google Sheets Setup Guide](docs/google_sheets_setup.md) for step-by-step instructions on API setup and sharing.
+
+### Activation:
+- Open `main.py`.
+- Uncomment: `await run_data_driven_test("YourSheetName")`.
 
 ## 🛠️ Project Evolution
 This structure is built for scalability. To add a new test scenario, create a new file in the `tests/` directory and register it in `main.py`.
