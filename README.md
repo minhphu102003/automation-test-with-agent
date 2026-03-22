@@ -1,41 +1,62 @@
 # Browser-Testing with AI Agents
+# Browser-Use Automation & Cost Feasibility Suite
 
-This repository is an automation testing suite powered by [browser-use](https://github.com/browser-use/browser-use) and AI Agents. It is designed to demonstrate how AI can interact with web pages to perform complex testing tasks.
+This project is a professional automation testing suite built with `browser-use`. It is designed to evaluate the feasibility of AI-driven browser automation by tracking execution performance and LLM API costs using MLflow.
 
-## 🚀 Key Features
+## 🏗️ Project Architecture
 
-- **AI-Driven Automation**: Powered by `browser-use` for high-level browser interaction.
-- **Smart Documentation Access**: Uses **Context7 MCP** to ensure the AI always has the latest documentation for rapidly evolving libraries.
-- **Optimized for Antigravity**: Modular configuration in the [`.agents/`](.agents/) directory.
+The project follows a modular, layered architecture:
 
-## 🛠️ Prerequisites
+- **`src/core/`**: Centralized logic for initializing the Browser, LLM wrappers, and the `browser-use` Agent.
+- **`src/monitoring/`**: Integration with MLflow to capture token usage, execution time, and estimated costs.
+- **`config/`**: Shared configuration, including model pricing data for cost calculation.
+- **`tests/`**: Dedicated directory for individual automation test scenarios and scripts.
+- **`.agents/`**: Modular rules and guidelines for AI agents working in this repository.
 
-- [Python](https://www.python.org/) 3.11+
-- [uv](https://github.com/astral-sh/uv) (Extremely fast Python package & project manager)
+## 🚀 Getting Started
 
-## 📦 Getting Started
+### 1. Prerequisites
+- [uv](https://github.com/astral-sh/uv) installed.
+- Playwright browsers installed: `uv run playwright install`.
 
-1. **Clone the repository**:
-   ```bash
-   git clone <your-repo-url>
-   cd browser-testing
+### 2. Setup
+Clone the repository and sync dependencies:
+```powershell
+uv sync
+```
+
+### 3. Configuration
+Create a `.env` file based on `.env.example` and add your API keys:
+```env
+OPENAI_API_KEY=your_key_here
+# Optional: GOOGLE_API_KEY=your_key_here
+```
+
+### 4. Running Tests
+Run the centralized runner to execute automation scenarios:
+```powershell
+uv run python main.py
+```
+
+## 📊 Monitoring & Cost Tracking
+
+### Viewing Results
+To view detailed metrics, including token usage and estimated USD costs:
+1. Start the MLflow UI:
+   ```powershell
+   uv run mlflow ui
    ```
+2. Open [http://localhost:5000](http://localhost:5000) in your browser.
+3. Select the **"Browser Automation Tests"** experiment from the left sidebar.
 
-2. **Sync dependencies**:
-   ```bash
-   uv sync
-   ```
+### Cost Calculation
+Pricing is configured in `config/pricing.py`. The suite currently tracks:
+- **Prompt Tokens**: Input tokens used per step.
+- **Completion Tokens**: Output tokens generated per step.
+- **Total Cost**: Estimated USD based on model-specific pricing.
 
-3. **Install Browser Binaries**:
-   ```bash
-   uv run playwright install chromium
-   ```
-
-4. **Configuration**:
-   Copy `.env.example` or create a `.env` file with your API keys:
-   ```env
-   OPENAI_API_KEY=sk-...
-   ```
+## 🛠️ Project Evolution
+This structure is built for scalability. To add a new test scenario, create a new file in the `tests/` directory and register it in `main.py`.
 
 ## 🤖 AI Agent Setup (CRITICAL)
 

@@ -160,3 +160,7 @@ Thumbs.db
 /playwright-report/
 /blob-report/
 /playwright/.local-browsers/
+
+# MLflow
+mlflow.db
+mlruns/

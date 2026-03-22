@@ -1,39 +1,19 @@
 import asyncio
 import os
 from dotenv import load_dotenv
-from browser_use import Agent, Browser, BrowserConfig
-from langchain_openai import ChatOpenAI
 
-# Load environment variables from .env
+# Import our refactored tests
+from tests.google_search_test import run_google_search_test
+
+# Load environment variables
 load_dotenv()
 
 async def main():
-    # 1. Configure the browser
-    # headless=False allows you to see the browser in action
-    browser = Browser(
-        config=BrowserConfig(
-            headless=False,
-        )
-    )
-
-    # 2. Initialize the LLM
-    # Note: Ensure OPENAI_API_KEY is set in your .env or environment
-    llm = ChatOpenAI(model="gpt-4o")
-
-    # 3. Create the Agent
-    agent = Agent(
-        task="Go to google.com and search for 'browser-use python library', then tell me the first result title.",
-        llm=llm,
-        browser=browser,
-    )
-
-    # 4. Run the agent
-    result = await agent.run()
-    print("\n--- Agent Result ---")
-    print(result)
-
-    # 5. Close the browser
-    await browser.close()
+    """Central entry point to run automation tests."""
+    print("=== Browser-Use Automation Test Suite ===")
+    
+    # In the future, you can add more tests here or use a CLI to select them
+    await run_google_search_test()
 
 if __name__ == "__main__":
     asyncio.run(main())
