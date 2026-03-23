@@ -53,17 +53,13 @@ To view detailed metrics, including token usage and estimated USD costs:
 
 The suite can read tasks from a Google Sheet to perform large-scale automation tests.
 
-### Quick Setup:
-1.  **Credentials**: Place `credentials.json` in the root directory.
-2.  **Verify**: Run the verification script:
-    ```powershell
-    uv run python tests/verify_sheets.py
-    ```
-3.  **Detailed Guide**: Follow the [Google Sheets Setup Guide](docs/google_sheets_setup.md) for step-by-step instructions on API setup and sharing.
+### Detailed Guides:
+1.  **[Google Sheets Setup Guide](docs/google_sheets_setup.md)**: Steps for API setup, credentials, and sharing.
+2.  **[Test Case Template Guide](docs/test_case_template.md)**: How to structure your Google Sheet (13-field format) for the AI Agent.
 
 ### Activation:
 - Open `main.py`.
-- Uncomment: `await run_data_driven_test("YourSheetName")`.
+- Uncomment: `await run_structured_tests("YourSheetName")`.
 
 ## 🛠️ Project Evolution
 This structure is built for scalability. To add a new test scenario, create a new file in the `tests/` directory and register it in `main.py`.

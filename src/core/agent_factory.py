@@ -17,10 +17,11 @@ def create_browser(headless: bool = False) -> Browser:
     """Initialize a Browser instance."""
     return Browser(headless=headless)
 
-def create_agent(task: str, llm: Any, browser: Browser) -> Agent:
-    """Initialize a browser-use Agent."""
+def create_agent(task: str, llm: Any, browser: Browser, result_type: Any = None) -> Agent:
+    """Initialize a browser-use Agent with optional result_type."""
     return Agent(
         task=task,
         llm=llm,
-        browser=browser
+        browser=browser,
+        result_type=result_type
     )

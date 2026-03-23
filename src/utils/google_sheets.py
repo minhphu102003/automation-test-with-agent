@@ -47,3 +47,42 @@ class GoogleSheetsClient:
             worksheet = spreadsheet.get_worksheet(0)
             
         worksheet.update_acell(cell, value)
+
+    def update_row_results(self, spreadsheet_name: str, test_id: str, results: Dict[str, Any], worksheet_name: str = None):
+        """
+        Update multiple columns for a specific test case identified by its ID.
+        'results' should be a dict mapping header names to values.
+        """
+        if not self.client:
+            self.connect()
+            
+        spreadsheet = self.client.open(spreadsheet_name)
+        if worksheet_name:
+            worksheet = spreadsheet.worksheet(worksheet_name)
+        else:
+            worksheet = spreadsheet.get_worksheet(0)
+            
+        # Get all records to find the row index
+        records = worksheet.get_all_records()
+        headers = worksheet.row_values(1)
+        
+        # Find row index (1-indexed, +1 for headers)
+        row_idx = -1
+        for i, row in enumerate(records):
+            # Try different common ID headers if "Test Case ID" is not found
+            id_val = str(row.get("Test Case ID") or row.get("ID") or "")
+            if id_val == str(test_id):
+                row_idx = i + 2
+                break
+        
+        if row_idx == -1:
+            print(f"Warning: Test Case ID '{test_id}' not found in sheet.")
+            return
+
+        # Update each result column
+        for header, value in results.items():
+            try:
+                col_idx = headers.index(header) + 1
+                worksheet.update_cell(row_idx, col_idx, value)
+            except ValueError:
+                print(f"Warning: Header '{header}' not found in sheet.")
