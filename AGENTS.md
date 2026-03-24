@@ -10,7 +10,8 @@ This project is an automation testing suite. You (the Agent) will act as a **Sen
 Detailed instructions and constraints are organized in the [`.agents/`](.agents/) directory to ensure scalability and modularity.
 
 ### Key Rules
-- **Context7 MCP**: Mandatory usage for all library-related tasks. See details in [.agents/rules/context7_mcp.md](.agents/rules/context7_mcp.md).
+- **Context7 MCP**: Mandatory usage for all library-related tasks. See [.agents/rules/context7_mcp.md](.agents/rules/context7_mcp.md).
+- **Frontend Atomic Design**: Mandatory for all frontend components. See [.agents/rules/frontend_atomic_design.md](.agents/rules/frontend_atomic_design.md).
 
 ## 🚀 Basic Setup Commands (Reference Only)
 - **Package Management**: `uv` (Do not use `pip` directly).
