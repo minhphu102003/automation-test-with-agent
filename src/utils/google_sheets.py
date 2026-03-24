@@ -22,12 +22,18 @@ class GoogleSheetsClient:
         self.client = gspread.service_account(filename=self.credentials_path)
         return self.client
 
-    def get_sheet_data(self, spreadsheet_name: str, worksheet_name: str = None) -> List[Dict[str, Any]]:
-        """Fetch all records from a specific worksheet."""
+    def _open_spreadsheet(self, spreadsheet_id_or_url: str):
+        """Internal helper to open a spreadsheet by name or URL."""
         if not self.client:
             self.connect()
         
-        spreadsheet = self.client.open(spreadsheet_name)
+        if spreadsheet_id_or_url.startswith('https://'):
+            return self.client.open_by_url(spreadsheet_id_or_url)
+        return self.client.open(spreadsheet_id_or_url)
+
+    def get_sheet_data(self, spreadsheet_id_or_url: str, worksheet_name: str = None) -> List[Dict[str, Any]]:
+        """Fetch all records from a specific worksheet."""
+        spreadsheet = self._open_spreadsheet(spreadsheet_id_or_url)
         if worksheet_name:
             worksheet = spreadsheet.worksheet(worksheet_name)
         else:
@@ -48,15 +54,11 @@ class GoogleSheetsClient:
             
         worksheet.update_acell(cell, value)
 
-    def update_row_results(self, spreadsheet_name: str, test_id: str, results: Dict[str, Any], worksheet_name: str = None):
+    def update_row_results(self, spreadsheet_id_or_url: str, test_id: str, results: Dict[str, Any], worksheet_name: str = None):
         """
         Update multiple columns for a specific test case identified by its ID.
-        'results' should be a dict mapping header names to values.
         """
-        if not self.client:
-            self.connect()
-            
-        spreadsheet = self.client.open(spreadsheet_name)
+        spreadsheet = self._open_spreadsheet(spreadsheet_id_or_url)
         if worksheet_name:
             worksheet = spreadsheet.worksheet(worksheet_name)
         else:

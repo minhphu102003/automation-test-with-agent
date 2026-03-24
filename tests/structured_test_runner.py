@@ -5,22 +5,33 @@ from dotenv import load_dotenv
 from src.core.agent_factory import create_llm, create_browser, create_agent
 from src.monitoring.logger import MLflowBrowserLogger
 from src.utils.google_sheets import GoogleSheetsClient
+from src.utils.google_drive import GoogleDriveClient
 from src.prompts.test_case_prompts import build_agent_prompt, TestCaseResult
 from src.monitoring.report_generator import generate_html_report, generate_pdf_report
 
 load_dotenv()
 
-async def run_structured_tests(spreadsheet_name: str, worksheet_name: str = None):
+async def run_structured_tests(spreadsheet_id_or_url: str, worksheet_name: str = None, project_name: str = None):
     """
     Runner for structured test cases from Google Sheets.
     """
     client = GoogleSheetsClient()
+    drive_client = GoogleDriveClient()
     logger = MLflowBrowserLogger(experiment_name="Structured Browser Tests")
     browser = create_browser(headless=False)
     
     try:
-        print(f"--- Fetching Structured Test Cases from: {spreadsheet_name} ---")
-        test_cases = client.get_sheet_data(spreadsheet_name, worksheet_name)
+        print(f"--- Fetching Structured Test Cases ---")
+        # Use internal helper to open and get actual title if project_name not provided
+        spreadsheet = client._open_spreadsheet(spreadsheet_id_or_url)
+        actual_project_name = project_name or spreadsheet.title
+        
+        if worksheet_name:
+            worksheet = spreadsheet.worksheet(worksheet_name)
+        else:
+            worksheet = spreadsheet.get_worksheet(0)
+            
+        test_cases = worksheet.get_all_records()
     except Exception as e:
         print(f"Error fetching data: {e}")
         return
@@ -50,6 +61,35 @@ async def run_structured_tests(spreadsheet_name: str, worksheet_name: str = None
         # Run agent
         history = await agent.run()
         
+        # Capture final screenshot (evidence)
+        evidence_path = ""
+        evidence_formula = ""
+        screenshots = history.screenshot_paths()
+        if screenshots:
+            local_path = screenshots[-1]
+            evidence_path = local_path
+            
+            # Upload to Google Drive and get link
+            try:
+                print(f"Uploading screenshot to Google Drive...")
+                # Organize folders: Project -> Module
+                project_folder_id = drive_client.get_or_create_folder(actual_project_name)
+                module_name = row.get("Module / Feature") or "General"
+                module_folder_id = drive_client.get_or_create_folder(module_name, parent_id=project_folder_id)
+                
+                # Use Test Case ID as filename
+                ext = os.path.splitext(local_path)[1]
+                custom_filename = f"{test_id}{ext}"
+                
+                drive_link = drive_client.upload_file(local_path, folder_id=module_folder_id, custom_name=custom_filename)
+                
+                # Use =IMAGE() formula for in-cell display
+                evidence_formula = f'=IMAGE("{drive_link}")'
+                print(f"Screenshot uploaded to {actual_project_name}/{module_name} as {custom_filename}")
+            except Exception as e:
+                print(f"Google Drive Upload Error: {e}")
+                evidence_formula = local_path # Fallback to local path string
+            
         # Extract structured result from history.final_result()
         result = history.final_result()
         
@@ -77,19 +117,21 @@ async def run_structured_tests(spreadsheet_name: str, worksheet_name: str = None
         results_to_update = {
             "Actual Result": actual_result,
             "Status (Pass/Fail)": status,
+            "Evidence": evidence_formula,
             "Comments / Notes": f"{comments} | Executed by AI Agent using {model_name}".strip(" | ")
         }
         
         try:
-            client.update_row_results(spreadsheet_name, test_id, results_to_update, worksheet_name)
+            client.update_row_results(spreadsheet_id_or_url, test_id, results_to_update, worksheet_name)
             print(f"Updated Google Sheet for {test_id}")
         except Exception as e:
             print(f"Error updating sheet: {e}")
 
-        # Collect for HTML Report
-        row_updated = row.copy()
-        row_updated.update(results_to_update)
-        final_results.append(row_updated)
+        # Collect for HTML/PDF Report (use local path for offline viewing)
+        row_report = row.copy()
+        row_report.update(results_to_update)
+        row_report["Evidence"] = evidence_path 
+        final_results.append(row_report)
 
     await browser.kill()
     

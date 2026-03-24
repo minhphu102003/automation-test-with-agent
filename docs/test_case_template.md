@@ -19,6 +19,7 @@ Your Google Sheet **MUST** include the following headers in the first row (case-
 | **Expected Result** | What should happen if the test passes. | Yes | `Redirect to Dashboard` |
 | **Actual Result** | **(Leave Empty)** - Filled automatically by Agent. | - | - |
 | **Status (Pass/Fail)**| **(Leave Empty)** - Filled automatically by Agent. | - | - |
+| **Evidence** | **(Leave Empty)** - Path to proof screenshot. | - | - |
 | **Priority** | Importance: High, Medium, or Low. | No | `High` |
 | **Comments / Notes** | **(Leave Empty)** - Filled automatically by Agent. | - | - |
 

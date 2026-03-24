@@ -143,11 +143,12 @@ HTML_TEMPLATE = """
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 10%;">ID</th>
-                        <th style="width: 25%;">Test Case Title</th>
-                        <th style="width: 10%;">Status</th>
-                        <th style="width: 40%;">Actual Result</th>
-                        <th style="width: 15%;">Priority</th>
+                        <th style="width: 8%;">ID</th>
+                        <th style="width: 20%;">Test Case Title</th>
+                        <th style="width: 8%;">Status</th>
+                        <th style="width: 34%;">Actual Result</th>
+                        <th style="width: 22%;">Evidence</th>
+                        <th style="width: 8%;">Priority</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -169,6 +170,15 @@ HTML_TEMPLATE = """
                             <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--accent);">
                                 <strong>Note:</strong> {{ tc['Comments / Notes'] }}
                             </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if tc['Evidence'] %}
+                            <div style="margin-top: 0.5rem;">
+                                <img src="file://{{ tc['Evidence'] }}" style="width: 100%; border-radius: 0.5rem; border: 1px solid var(--border);" alt="Evidence">
+                            </div>
+                            {% else %}
+                            <span style="color: var(--text-dim); font-size: 0.75rem;">No Evidence</span>
                             {% endif %}
                         </td>
                         <td>{{ tc['Priority'] or 'Medium' }}</td>
