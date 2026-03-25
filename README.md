@@ -1,7 +1,31 @@
 # Browser-Testing with AI Agents
-# Browser-Use Automation & Cost Feasibility Suite
+# Browser-Use Automation & Browser Testing Suite
+
+**Version**: `1.0.0` | **License**: MIT | **Status**: Stable (Clean Architecture)
+
+## 📋 System Requirements (Total)
+
+- **CPU**: 3.0 Cores (Reserved: 1.5)
+- **RAM**: 6.0 GB (Reserved: 3.0 GB)
+- **Disk**: 2 GB free space
+- **Software**: Docker Desktop / Engine with Compose v2+
 
 This project is a professional automation testing suite built with `browser-use`. It is designed to evaluate the feasibility of AI-driven browser automation by tracking execution performance and LLM API costs using MLflow.
+
+## 🚀 Quick Start with Docker
+
+The easiest way to run the entire suite is using Docker Compose.
+
+1. **Build & Start**:
+   ```bash
+   docker compose up --build -d
+   ```
+2. **Access Services**:
+   - **Main Dashboard**: [http://localhost:3000](http://localhost:3000)
+   - **Backend API**: [http://localhost:8000/docs](http://localhost:8000/docs)
+   - **MLflow Tracking**: [http://localhost:5000](http://localhost:5000)
+
+For detailed configuration and resource management, see the [Docker Deployment Guide](docs/docker_guide.md).
 
 ## 🏗️ Project Architecture
 
