@@ -11,6 +11,7 @@ Detailed instructions and constraints are organized in the [`.agents/`](.agents/
 
 ### Key Rules
 - **Context7 MCP**: Mandatory usage for all library-related tasks. See [.agents/rules/context7_mcp.md](.agents/rules/context7_mcp.md).
+- **Backend Clean Architecture**: Mandatory for all backend logic. See [.agents/rules/backend_clean_architecture.md](.agents/rules/backend_clean_architecture.md).
 - **Frontend Atomic Design**: Mandatory for all frontend components. See [.agents/rules/frontend_atomic_design.md](.agents/rules/frontend_atomic_design.md).
 
 ## 🚀 Basic Setup Commands (Reference Only)

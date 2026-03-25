@@ -1,7 +1,7 @@
 import mlflow
 from typing import Any, Dict, List
 from browser_use import AgentHistoryList
-from config.pricing import COST_PER_1M_TOKENS, DEFAULT_PRICING
+from config.pricing import COST_PER_1M_TOKENS, DEFAULT_PRICING # This is still correct relative to root
 
 def calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> float:
     pricing = COST_PER_1M_TOKENS.get(model_name, DEFAULT_PRICING)
