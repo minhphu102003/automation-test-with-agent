@@ -17,23 +17,37 @@ const LiveConsole = () => {
   return (
     <Card 
       className="glass-card border-white/10 h-full flex flex-col" 
+      styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' } }}
       title={
         <div className="flex justify-between items-center w-full">
           <span className="text-white outfit text-lg">2. Live Agent Console</span>
-          <Badge status="processing" text={<span className="text-blue-400 text-xs">AGENT ACTIVE</span>} />
+          <Badge status="processing" text={<span className="text-blue-400 text-xs">AGENT ACTIVE & STREAMING</span>} />
         </div>
       }
     >
-      <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
-        <Timeline
-          mode="start"
-          items={logs.map(log => ({
-            ...log,
-            title: <span className="text-gray-600 text-[10px]">{log.time}</span>,
-            content: <span className="text-gray-300 text-sm">{log.content}</span>
-          }))}
-        />
-        {logs.length === 0 && <Empty description="No logs yet. Launch an agent to see live status." />}
+      <div className="flex flex-col h-full bg-black/20 overflow-hidden">
+        {/* Browser Window VNC View via Browserless */}
+        <div className="flex-[3] border-b border-white/10 relative bg-black">
+          <iframe 
+            src="http://localhost:3002/" 
+            className="w-full h-full border-none absolute inset-0"
+            title="Browserless Live Session Viewer"
+            allow="fullscreen"
+          />
+        </div>
+        
+        {/* Logs Timeline */}
+        <div className="flex-[2] overflow-y-auto p-4 custom-scrollbar">
+          <Timeline
+            mode="left"
+            items={logs.map(log => ({
+              ...log,
+              label: <span className="text-gray-500 text-xs">{log.time}</span>,
+              children: <span className="text-gray-300 text-sm">{log.content}</span>
+            }))}
+          />
+          {logs.length === 0 && <Empty description="No logs yet. Launch an agent to see live status." />}
+        </div>
       </div>
     </Card>
   );

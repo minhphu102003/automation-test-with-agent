@@ -9,6 +9,8 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - BROWSER_CDP_URL=ws://browserless:3000
     volumes:
       - ./mlflow.db:/app/mlflow.db
       - ./mlruns:/app/mlruns
@@ -16,12 +18,21 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 4G
+          memory: 2G
         reservations:
           cpus: '0.5'
-          memory: 1G
+          memory: 512M
     depends_on:
       - mlflow
+      - browserless
+
+  browserless:
+    image: browserless/chrome:latest
+    ports:
+      - "3002:3000"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=5
+      - KEEP_ALIVE=true
 
   frontend:
     build:
@@ -35,7 +46,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 1G
+          memory: 512M
         reservations:
           memory: 256M
 
@@ -53,7 +64,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 1G
+          memory: 2G
 
 networks:
   default:

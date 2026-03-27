@@ -14,9 +14,23 @@ def create_llm(model_name: str):
         from browser_use import ChatOpenAI
         return ChatOpenAI(model=model_name)
 
-def create_browser(headless: bool = False) -> BrowserUseBrowserWrapper:
+import os
+
+def create_browser(headless: bool = False, storage_state: str = None) -> BrowserUseBrowserWrapper:
     """Initialize a Browser instance and wrap it."""
-    browser = Browser(headless=headless)
+    cdp_url = os.getenv("BROWSER_CDP_URL")
+    
+    kwargs = {}
+    if cdp_url:
+        kwargs["cdp_url"] = cdp_url
+    else:
+        kwargs["headless"] = headless
+        
+    if storage_state:
+        kwargs["storage_state"] = storage_state
+        
+    browser = Browser(**kwargs)
+        
     return BrowserUseBrowserWrapper(browser)
 
 def create_agent(task: str, llm: Any, browser: BrowserUseBrowserWrapper, result_type: Any = None, save_screenshots: bool = True) -> BrowserUseAgentWrapper:

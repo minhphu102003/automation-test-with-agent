@@ -14,7 +14,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Antigravity | AI Browser Automation",
+  title: "AI Browser Automation",
   description: "Modern professional dashboard for AI-powered browser automation.",
 };
 
