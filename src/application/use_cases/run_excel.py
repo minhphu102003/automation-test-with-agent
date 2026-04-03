@@ -8,11 +8,11 @@ import uuid
 import zipfile
 from typing import Any, Tuple
 from src.infrastructure.agent.agent_factory import create_llm, create_browser, create_agent
-from src.infrastructure.monitoring.mlflow_logger import MLflowBrowserLogger
+from src.infrastructure.monitoring.langfuse_logger import LangfuseBrowserLogger
 
 class RunExcelAutomationUseCase:
     def __init__(self, experiment_name: str = "Browser Automation Tests"):
-        self.logger = MLflowBrowserLogger(experiment_name=experiment_name)
+        self.logger = LangfuseBrowserLogger(experiment_name=experiment_name)
 
     async def execute(self, file_path: str, url: str, access_token: str, model_name: str = "gpt-4o-mini") -> Tuple[str, str]:
         # 1. Setup Storage State (Cookies/Local Storage)

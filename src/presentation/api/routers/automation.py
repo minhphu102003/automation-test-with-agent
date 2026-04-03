@@ -33,7 +33,9 @@ async def run_automation(request: AutomationRunRequest, use_case: RunAutomationU
             model=request.model
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
 
 @router.post("/run_excel")
 async def run_excel_automation(
