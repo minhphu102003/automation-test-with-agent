@@ -14,26 +14,53 @@ class RunExcelAutomationUseCase:
     def __init__(self, experiment_name: str = "Browser Automation Tests"):
         self.logger = LangfuseBrowserLogger(experiment_name=experiment_name)
 
-    async def execute(self, file_path: str, url: str, access_token: str, model_name: str = "gpt-4o-mini") -> Tuple[str, str]:
+    async def execute(self, file_path: str, url: str, access_token: str, cookies: str = None, model_name: str = "gpt-4o-mini") -> Tuple[str, str]:
         # 1. Setup Storage State (Cookies/Local Storage)
         storage_state_path = None
-        if access_token:
+        
+        # Use existing logic for access_token, and extend with cookies
+        if access_token or cookies:
             from urllib.parse import urlparse
             parsed_url = urlparse(url)
             origin_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
             
+            # Initial state structure
             state = {
                 "cookies": [],
                 "origins": [
                     {
                         "origin": origin_url,
-                        "localStorage": [
-                            {"name": "access_token", "value": access_token},
-                            {"name": "accessToken", "value": access_token}
-                        ]
+                        "localStorage": []
                     }
                 ]
             }
+            
+            # Add Access Token to localStorage if provided
+            if access_token:
+                state["origins"][0]["localStorage"].extend([
+                    {"name": "access_token", "value": access_token},
+                    {"name": "accessToken", "value": access_token},
+                    {"name": "token", "value": access_token}
+                ])
+            
+            # Add Cookies if provided (expecting JSON string {"name": "value"})
+            if cookies:
+                try:
+                    cookie_dict = json.loads(cookies)
+                    if isinstance(cookie_dict, dict):
+                        for name, value in cookie_dict.items():
+                            state["cookies"].append({
+                                "name": name,
+                                "value": str(value),
+                                "url": url
+                            })
+                    elif isinstance(cookie_dict, list):
+                        # Support direct list if provided
+                        state["cookies"].extend(cookie_dict)
+                except json.JSONDecodeError:
+                    print(f"Warning: Failed to parse cookies JSON: {cookies}")
+            
+            # Create temporary storage state file
             with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, dir=tempfile.gettempdir()) as f:
                 json.dump(state, f)
                 storage_state_path = f.name

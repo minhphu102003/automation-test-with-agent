@@ -24,18 +24,19 @@ def get_excel_use_case():
 
 @router.post("/run", response_model=AutomationRunResponse)
 async def run_automation(request: AutomationRunRequest, use_case: RunAutomationUseCase = Depends(get_automation_use_case)):
-    try:
-        run_id, _ = await use_case.execute(request.task, request.model)
-        return AutomationRunResponse(
-            run_id=run_id,
-            status="completed",
-            task=request.task,
-            model=request.model
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
+    run_id, _ = await use_case.execute(
+        request.task, 
+        request.model,
+        url=request.url,
+        cookies=request.cookies,
+        access_token=request.access_token
+    )
+    return AutomationRunResponse(
+        run_id=run_id,
+        status="completed",
+        task=request.task,
+        model=request.model
+    )
 
 @router.post("/run_excel")
 async def run_excel_automation(
@@ -43,16 +44,16 @@ async def run_excel_automation(
     file: UploadFile = File(...), 
     url: str = Form(...), 
     access_token: str = Form(""),
+    cookies: str = Form(None),
     use_case: RunExcelAutomationUseCase = Depends(get_excel_use_case)
 ):
+    tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
             shutil.copyfileobj(file.file, tmp)
             tmp_path = tmp.name
             
-        run_id, zip_path = await use_case.execute(tmp_path, url, access_token)
-        os.remove(tmp_path)
-        
+        run_id, zip_path = await use_case.execute(tmp_path, url, access_token, cookies=cookies)
         background_tasks.add_task(os.remove, zip_path)
         
         return FileResponse(
@@ -60,12 +61,9 @@ async def run_excel_automation(
             filename=f"automation_results_{run_id}.zip",
             media_type="application/zip"
         )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        if 'tmp_path' in locals() and os.path.exists(tmp_path):
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
             os.remove(tmp_path)
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/history", response_model=List[TestRunHistory])
 async def get_history(limit: int = 50, reader: LangfuseReader = Depends(get_langfuse_reader)):

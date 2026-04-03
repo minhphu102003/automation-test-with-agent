@@ -15,8 +15,14 @@ if project_root not in sys.path:
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import uvicorn
+from src.presentation.api.error_handlers import global_exception_handler
+from src.domain.exceptions.base import AppBaseException
 
 app = FastAPI()
+
+# Global Exception Handlers
+app.add_exception_handler(Exception, global_exception_handler)
+app.add_exception_handler(AppBaseException, global_exception_handler)
 
 @app.on_event("startup")
 async def startup():
