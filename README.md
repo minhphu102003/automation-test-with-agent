@@ -10,7 +10,7 @@
 - **Disk**: 2 GB free space
 - **Software**: Docker Desktop / Engine with Compose v2+
 
-This project is a professional automation testing suite built with `browser-use`. It is designed to evaluate the feasibility of AI-driven browser automation by tracking execution performance and LLM API costs using MLflow.
+This project is a professional automation testing suite built with `browser-use`. It is designed to evaluate the feasibility of AI-driven browser automation by tracking execution performance and LLM API costs using Langfuse.
 
 ## 🚀 Quick Start with Docker
 
@@ -23,7 +23,7 @@ The easiest way to run the entire suite is using Docker Compose.
 2. **Access Services**:
    - **Main Dashboard**: [http://localhost:3000](http://localhost:3000)
    - **Backend API**: [http://localhost:8000/docs](http://localhost:8000/docs)
-   - **MLflow Tracking**: [http://localhost:5000](http://localhost:5000)
+   - **Langfuse Tracing**: Cloud Dashboard
 
 For detailed configuration and resource management, see the [Docker Deployment Guide](docs/docker_guide.md).
 
@@ -32,7 +32,7 @@ For detailed configuration and resource management, see the [Docker Deployment G
 The project follows a modular, layered architecture:
 
 - **`src/core/`**: Centralized logic for initializing the Browser, LLM wrappers, and the `browser-use` Agent.
-- **`src/monitoring/`**: Integration with MLflow to capture token usage, execution time, and estimated costs.
+- **`src/monitoring/`**: Integration with Langfuse to capture token usage, execution time, and computed costs.
 - **`config/`**: Shared configuration, including model pricing data for cost calculation.
 - **`tests/`**: Dedicated directory for individual automation test scenarios and scripts.
 - **`.agents/`**: Modular rules and guidelines for AI agents working in this repository.
@@ -66,12 +66,8 @@ uv run python main.py
 
 ### Viewing Results
 To view detailed metrics, including token usage and estimated USD costs:
-1. Start the MLflow UI:
-   ```powershell
-   uv run mlflow ui
-   ```
-2. Open [http://localhost:5000](http://localhost:5000) in your browser.
-3. Select the **"Browser Automation Tests"** experiment from the left sidebar.
+1. Log into your [Langfuse Cloud](https://langfuse.com) dashboard.
+2. Select your project and navigate to **Traces** to view step-by-step executions or **Dashboard** to view aggregate costs.
 
 ## 📁 Data-Driven Testing (Google Sheets)
 

@@ -11,9 +11,6 @@ services:
       - .env
     environment:
       - BROWSER_CDP_URL=ws://browserless:3000
-    volumes:
-      - ./mlflow.db:/app/mlflow.db
-      - ./mlruns:/app/mlruns
     deploy:
       resources:
         limits:
@@ -23,7 +20,6 @@ services:
           cpus: '0.5'
           memory: 512M
     depends_on:
-      - mlflow
       - browserless
 
   browserless:
@@ -50,21 +46,7 @@ services:
         reservations:
           memory: 256M
 
-  mlflow:
-    build:
-      context: .
-      dockerfile: docker/mlflow.Dockerfile
-    ports:
-      - "5000:5000"
-    command: ["mlflow", "ui", "--host", "0.0.0.0", "--port", "5000", "--workers", "1"]
-    volumes:
-      - ./mlflow.db:/app/mlflow.db
-      - ./mlruns:/app/mlruns
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 2G
+
 
 networks:
   default:

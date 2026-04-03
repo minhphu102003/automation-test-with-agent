@@ -4,7 +4,7 @@ from src.presentation.schemas.automation import AutomationRunRequest, Automation
 from src.application.use_cases.run_automation import RunAutomationUseCase
 from src.application.use_cases.run_excel import RunExcelAutomationUseCase
 from src.application.use_cases.get_metrics import GetHistoryUseCase
-from src.infrastructure.monitoring.mlflow_reader import MLflowReader
+from src.infrastructure.monitoring.langfuse_reader import LangfuseReader
 from typing import List
 import os
 import shutil
@@ -13,8 +13,8 @@ import tempfile
 router = APIRouter(prefix="/automation", tags=["automation"])
 
 # Dependency Injection Setup
-def get_mlflow_reader():
-    return MLflowReader()
+def get_langfuse_reader():
+    return LangfuseReader()
 
 def get_automation_use_case():
     return RunAutomationUseCase()
@@ -66,6 +66,6 @@ async def run_excel_automation(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/history", response_model=List[TestRunHistory])
-async def get_history(limit: int = 50, reader: MLflowReader = Depends(get_mlflow_reader)):
+async def get_history(limit: int = 50, reader: LangfuseReader = Depends(get_langfuse_reader)):
     use_case = GetHistoryUseCase(reader)
     return use_case.execute(limit=limit)
