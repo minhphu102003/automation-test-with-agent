@@ -29,7 +29,9 @@ async def run_automation(request: AutomationRunRequest, use_case: RunAutomationU
         request.model,
         url=request.url,
         cookies=request.cookies,
-        access_token=request.access_token
+        access_token=request.access_token,
+        wait_for_url=request.wait_for_url,
+        wait_for_selector=request.wait_for_selector
     )
     return AutomationRunResponse(
         run_id=run_id,
@@ -45,6 +47,8 @@ async def run_excel_automation(
     url: str = Form(...), 
     access_token: str = Form(""),
     cookies: str = Form(None),
+    wait_for_url: str = Form(None),
+    wait_for_selector: str = Form(None),
     use_case: RunExcelAutomationUseCase = Depends(get_excel_use_case)
 ):
     tmp_path = None
@@ -53,7 +57,14 @@ async def run_excel_automation(
             shutil.copyfileobj(file.file, tmp)
             tmp_path = tmp.name
             
-        run_id, zip_path = await use_case.execute(tmp_path, url, access_token, cookies=cookies)
+        run_id, zip_path = await use_case.execute(
+            tmp_path, 
+            url, 
+            access_token, 
+            cookies=cookies,
+            wait_for_url=wait_for_url,
+            wait_for_selector=wait_for_selector
+        )
         background_tasks.add_task(os.remove, zip_path)
         
         return FileResponse(

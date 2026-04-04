@@ -14,7 +14,7 @@ class RunExcelAutomationUseCase:
     def __init__(self, experiment_name: str = "Browser Automation Tests"):
         self.logger = LangfuseBrowserLogger(experiment_name=experiment_name)
 
-    async def execute(self, file_path: str, url: str, access_token: str, cookies: str = None, model_name: str = "gpt-4o-mini") -> Tuple[str, str]:
+    async def execute(self, file_path: str, url: str, access_token: str, cookies: str = None, model_name: str = "gpt-4o-mini", wait_for_url: str = None, wait_for_selector: str = None) -> Tuple[str, str]:
         # 1. Setup Storage State (Cookies/Local Storage)
         storage_state_path = None
         
@@ -84,6 +84,12 @@ class RunExcelAutomationUseCase:
             df["Evidence"] = ""
 
         browser = create_browser(headless=False, storage_state=storage_state_path)
+        
+        # 3.5 Stabilization: Wait for URL or Selector before starting the loop
+        # This ensures the browser is at a stable auth state
+        target_url = wait_for_url or url
+        await self._wait_until_ready(browser, target_url, wait_for_selector)
+        
         llm = create_llm(model_name)
 
         # 4. Row-by-Row Execution
@@ -185,3 +191,39 @@ class RunExcelAutomationUseCase:
         shutil.rmtree(results_dir)
         
         return run_id, zip_path
+
+    async def _wait_until_ready(self, browser, url: str, selector: str = None, timeout: int = 30):
+        """Wait for the page to reach a stable state (URL and/or Selector)."""
+        import asyncio
+        if not url and not selector:
+            return
+
+        print(f"--- [Excel] Waiting for Stabilization (Timeout: {timeout}s) ---")
+        # In Excel case, we need to get a session first
+        session = await browser._browser.get_session()
+        
+        if url:
+             await session.navigate_to(url)
+             
+        page = await session.get_current_page()
+        
+        try:
+            if url:
+                print(f"--- [Excel] Waiting for URL: {url} ---")
+                start_time = asyncio.get_event_loop().time()
+                while asyncio.get_event_loop().time() - start_time < timeout:
+                    current_url = page.url
+                    if url in current_url:
+                        print(f"--- [Excel] Target URL reached: {current_url} ---")
+                        break
+                    await asyncio.sleep(1)
+                else:
+                    print(f"--- [Excel] Warning: Timeout reached waiting for URL {url}. Current: {page.url} ---")
+
+            if selector:
+                print(f"--- [Excel] Waiting for Selector: {selector} ---")
+                await page.wait_for_selector(selector, state="visible", timeout=timeout * 1000)
+                print(f"--- [Excel] Selector {selector} is visible ---")
+
+        except Exception as e:
+            print(f"--- [Excel] Stabilization Error: {e} ---")

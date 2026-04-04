@@ -1,5 +1,5 @@
 from typing import Any, Optional
-from browser_use import Agent, Browser
+from browser_use import Agent, BrowserSession
 from src.domain.interfaces.agent import IAgent, IBrowser
 
 class BrowserUseAgentWrapper(IAgent):
@@ -17,7 +17,7 @@ class BrowserUseAgentWrapper(IAgent):
         return ""
 
 class BrowserUseBrowserWrapper(IBrowser):
-    def __init__(self, browser: Browser):
+    def __init__(self, browser: BrowserSession):
         self._browser = browser
 
     async def kill(self):

@@ -5,9 +5,11 @@ from datetime import datetime
 class AutomationRunRequest(BaseModel):
     task: str = Field(..., example="Go to google.com and search for browser-use")
     model: str = Field(default="gpt-4o-mini", example="gpt-4o-mini")
-    url: Optional[str] = Field(None, example="https://example.com/login")
+    url: Optional[str] = Field(None, example="https://example.com/dashboard")
     cookies: Optional[Dict[str, str]] = Field(None, example={"session": "12345"})
     access_token: Optional[str] = Field(None, example="ey... (JWT)")
+    wait_for_url: Optional[str] = Field(None, example="https://example.com/dashboard")
+    wait_for_selector: Optional[str] = Field(None, example=".main-content")
 
 class AutomationRunResponse(BaseModel):
     run_id: str

@@ -1,8 +1,6 @@
 import os
 from typing import Any
-from browser_use import Agent, Browser, ChatOpenAI, ChatGoogle
-from browser_use.browser.browser import BrowserConfig
-from browser_use.browser.context import BrowserContextConfig
+from browser_use import Agent, BrowserSession, BrowserProfile, ChatOpenAI, ChatGoogle
 from src.infrastructure.agent.browser_use_wrapper import BrowserUseAgentWrapper, BrowserUseBrowserWrapper
 
 def create_llm(model_name: str):
@@ -15,43 +13,20 @@ def create_llm(model_name: str):
         return ChatOpenAI(model=model_name)
 
 def create_browser(headless: bool = False, storage_state: str = None) -> BrowserUseBrowserWrapper:
-    """Initialize a Browser instance and wrap it."""
+    """Initialize a BrowserSession instance and wrap it.
+    
+    NOTE: browser-use 0.12.x replaced Browser/BrowserConfig with BrowserSession/BrowserProfile.
+    """
     cdp_url = os.getenv("BROWSER_CDP_URL")
     
-    # COST OPTIMIZATION: Use Adblock and disable highlighting to reduce DOM noise
-    # Also exclude non-essential elements to focus on the content
-    config = BrowserConfig(
-        headless=headless,
-        disable_gpu=True,
-        # highlight_elements=False,
-    )
-    
-    # DOM CLEANING: Focus on the chat/main content areas
-    # We exclude common non-interactive or distracting elements
-    context_kwargs = {
-        "browser_context_config": {
-            "excluded_selectors": [
-                "nav", "footer", "header", "aside", 
-                ".ad", ".ads", ".sidebar", ".cookie-banner",
-                "script", "style", "noscript", "svg", "iframe"
-            ]
-        }
+    kwargs = {
+        "headless": headless,
     }
     
-    kwargs = {}
     if cdp_url:
         kwargs["cdp_url"] = cdp_url
-    else:
-        # Check if version supports BrowserConfig
-        try:
-            kwargs["config"] = config
-        except Exception:
-            kwargs["headless"] = headless
         
-    if storage_state:
-        kwargs["storage_state"] = storage_state
-        
-    browser = Browser(**kwargs)
+    browser = BrowserSession(**kwargs)
         
     return BrowserUseBrowserWrapper(browser)
 
@@ -62,25 +37,19 @@ def create_agent(
     result_type: Any = None, 
     save_screenshots: bool = False # Set False for cost optimization
 ) -> BrowserUseAgentWrapper:
-    """Initialize a browser-use Agent and wrap it."""
+    """Initialize a browser-use Agent and wrap it.
+    
+    NOTE: browser-use 0.12.x removed BrowserContextConfig.
+    Agent now accepts browser_session directly.
+    """
     # COST OPTIMIZATION: use_vision=False reduces token consumption
     # COST OPTIMIZATION: max_steps=5 prevents runaway token usage
-    # DOM CLEANING: Focus on the chat/main content areas to save tokens
     
     agent = Agent(
         task=task,
         llm=llm,
-        browser=browser._browser,
-        result_type=result_type,
+        browser_session=browser._browser,
         use_vision=False,
         max_steps=5,
-        save_screenshots=save_screenshots,
-        browser_context_config=BrowserContextConfig(
-            excluded_selectors=[
-                "nav", "footer", "header", "aside", 
-                ".ad", ".ads", ".sidebar", ".cookie-banner",
-                "script", "style", "noscript", "svg", "iframe"
-            ]
-        )
     )
     return BrowserUseAgentWrapper(agent)
