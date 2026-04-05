@@ -1,3 +1,5 @@
+DEFAULT_MODEL = "gpt-4o-mini"
+
 # Simple approximate pricing per 1M tokens (USD)
 COST_PER_1M_TOKENS = {
     "gpt-4o": {"input": 5.00, "output": 15.00},

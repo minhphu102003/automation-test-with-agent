@@ -35,6 +35,9 @@ def create_agent(
     llm: Any, 
     browser: BrowserUseBrowserWrapper, 
     result_type: Any = None, 
+    tools: Any = None,
+    use_vision: bool = True,
+    max_steps: int = 5,
     save_screenshots: bool = False # Set False for cost optimization
 ) -> BrowserUseAgentWrapper:
     """Initialize a browser-use Agent and wrap it.
@@ -49,7 +52,8 @@ def create_agent(
         task=task,
         llm=llm,
         browser_session=browser._browser,
-        use_vision=False,
-        max_steps=5,
+        use_vision=use_vision,
+        max_steps=max_steps,
+        tools=tools,
     )
     return BrowserUseAgentWrapper(agent)

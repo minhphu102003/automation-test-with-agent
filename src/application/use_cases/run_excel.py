@@ -9,12 +9,14 @@ import zipfile
 from typing import Any, Tuple
 from src.infrastructure.agent.agent_factory import create_llm, create_browser, create_agent
 from src.infrastructure.monitoring.langfuse_logger import LangfuseBrowserLogger
+from src.application.services.task_analyzer import LLMTaskAnalyzer
+from config.pricing import DEFAULT_MODEL
 
 class RunExcelAutomationUseCase:
     def __init__(self, experiment_name: str = "Browser Automation Tests"):
         self.logger = LangfuseBrowserLogger(experiment_name=experiment_name)
 
-    async def execute(self, file_path: str, url: str, access_token: str, cookies: str = None, model_name: str = "gpt-4o-mini", wait_for_url: str = None, wait_for_selector: str = None) -> Tuple[str, str]:
+    async def execute(self, file_path: str, url: str, access_token: str, cookies: str = None, model_name: str = DEFAULT_MODEL, use_vision: bool = None, max_steps: int = 5, wait_for_url: str = None, wait_for_selector: str = None) -> Tuple[str, str]:
         # 1. Setup Storage State (Cookies/Local Storage)
         storage_state_path = None
         
@@ -119,8 +121,16 @@ class RunExcelAutomationUseCase:
                 f"STATUS: <PASS or FAIL>"
             )
             
-            print(f"--- Executing Row {index+1}: {test_id} ---")
-            agent = create_agent(task_prompt, llm, browser)
+            print(f"--- [Excel] Executing Row {index+1}: {test_id} ---")
+            
+            # Smart Vision Logic
+            row_use_vision = use_vision
+            if row_use_vision is None:
+                analyzer = LLMTaskAnalyzer()
+                row_use_vision = await analyzer.requires_vision(task_prompt)
+                print(f"--- [Excel] Smart Vision Decision: {'ENABLED' if row_use_vision else 'DISABLED'} ---")
+
+            agent = create_agent(task_prompt, llm, browser, use_vision=row_use_vision, max_steps=max_steps)
             history = await agent.run()
             
             # Extract final text

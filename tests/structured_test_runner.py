@@ -4,6 +4,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from src.core.agent_factory import create_llm, create_browser, create_agent
 from src.monitoring.logger import MLflowBrowserLogger
+from config.pricing import DEFAULT_MODEL
 from src.utils.google_sheets import GoogleSheetsClient
 from src.utils.google_drive import GoogleDriveClient
 from src.prompts.test_case_prompts import build_agent_prompt, TestCaseResult
@@ -52,7 +53,7 @@ async def run_structured_tests(spreadsheet_id_or_url: str, worksheet_name: str =
         
         # Build prompt and initialize agent
         task_prompt = build_agent_prompt(row)
-        model_name = row.get('model', 'gpt-4o') 
+        model_name = row.get('model', DEFAULT_MODEL) 
         
         llm = create_llm(model_name)
         # Pass TestCaseResult as result_type to get structured output

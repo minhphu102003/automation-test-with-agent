@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 from src.presentation.schemas.automation import AutomationRunRequest, AutomationRunResponse, TestRunHistory
 from src.application.use_cases.run_automation import RunAutomationUseCase
 from src.application.use_cases.run_excel import RunExcelAutomationUseCase
+from config.pricing import DEFAULT_MODEL
 from src.application.use_cases.get_metrics import GetHistoryUseCase
 from src.infrastructure.monitoring.langfuse_reader import LangfuseReader
 from typing import List
@@ -30,6 +31,12 @@ async def run_automation(request: AutomationRunRequest, use_case: RunAutomationU
         url=request.url,
         cookies=request.cookies,
         access_token=request.access_token,
+        token_key=request.token_key,
+        width=request.width,
+        height=request.height,
+        is_mobile=request.is_mobile,
+        use_vision=request.use_vision,
+        max_steps=request.max_steps,
         wait_for_url=request.wait_for_url,
         wait_for_selector=request.wait_for_selector
     )
@@ -46,9 +53,12 @@ async def run_excel_automation(
     file: UploadFile = File(...), 
     url: str = Form(...), 
     access_token: str = Form(""),
-    cookies: str = Form(None),
-    wait_for_url: str = Form(None),
-    wait_for_selector: str = Form(None),
+    cookies: Optional[str] = Form(None),
+    model: str = Form(DEFAULT_MODEL),
+    use_vision: Optional[bool] = Form(None),
+    max_steps: int = Form(5),
+    wait_for_url: Optional[str] = Form(None),
+    wait_for_selector: Optional[str] = Form(None),
     use_case: RunExcelAutomationUseCase = Depends(get_excel_use_case)
 ):
     tmp_path = None
@@ -62,6 +72,9 @@ async def run_excel_automation(
             url, 
             access_token, 
             cookies=cookies,
+            model_name=model,
+            use_vision=use_vision,
+            max_steps=max_steps,
             wait_for_url=wait_for_url,
             wait_for_selector=wait_for_selector
         )

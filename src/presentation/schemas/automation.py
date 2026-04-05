@@ -1,13 +1,20 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 from datetime import datetime
+from config.pricing import DEFAULT_MODEL
 
 class AutomationRunRequest(BaseModel):
     task: str = Field(..., example="Go to google.com and search for browser-use")
-    model: str = Field(default="gpt-4o-mini", example="gpt-4o-mini")
+    model: str = Field(default=DEFAULT_MODEL, example=DEFAULT_MODEL)
     url: Optional[str] = Field(None, example="https://example.com/dashboard")
     cookies: Optional[Dict[str, str]] = Field(None, example={"session": "12345"})
     access_token: Optional[str] = Field(None, example="ey... (JWT)")
+    token_key: Optional[str] = Field(None, example="access_token", description="The custom key to store the token in localStorage")
+    width: Optional[int] = Field(None, example=1280, description="Browser viewport width")
+    height: Optional[int] = Field(None, example=800, description="Browser viewport height")
+    is_mobile: Optional[bool] = Field(False, description="Whether to emulate a mobile device")
+    use_vision: Optional[bool] = Field(None, description="Whether to use vision-based processing. If None, it will be auto-detected.")
+    max_steps: int = Field(default=5, description="The maximum number of steps the agent can take")
     wait_for_url: Optional[str] = Field(None, example="https://example.com/dashboard")
     wait_for_selector: Optional[str] = Field(None, example=".main-content")
 
