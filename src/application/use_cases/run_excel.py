@@ -84,6 +84,15 @@ class RunExcelAutomationUseCase:
             df["Status (Pass/Fail)"] = ""
         if "Evidence" not in df.columns:
             df["Evidence"] = ""
+            
+        # 3.1 Preprocessing: Prepare for Grouped Execution
+        # We add a hidden column to track the target URL for each row and another for the original order
+        df["_original_index"] = df.index
+        df["_target_url"] = df.apply(lambda r: str(r.get("URL", url)).strip() if not pd.isna(r.get("URL")) else url, axis=1)
+        df["_target_url"] = df["_target_url"].apply(lambda u: url if u == "nan" or not u else u)
+        
+        # Sort by URL to group them together
+        df_sorted = df.sort_values(by="_target_url").copy()
 
         browser = create_browser(headless=False, storage_state=storage_state_path)
         
@@ -93,12 +102,17 @@ class RunExcelAutomationUseCase:
         await self._wait_until_ready(browser, target_url, wait_for_selector)
         
         llm = create_llm(model_name)
-
-        # 4. Row-by-Row Execution
-        # Ensure 'Test Steps' column exists before looping
-        step_col = next((col for col in ["Test Steps", "Task description", "Description"] if col in df.columns), None)
         
-        for index, row in df.iterrows():
+        # Get browser session once for the entire run
+        session = await browser._browser.get_session()
+
+        # 4. Row-by-Row Execution (Optimized Order)
+        # Ensure 'Test Steps' column exists before looping
+        step_col = next((col for col in ["Test Steps", "Task description", "Description"] if col in df_sorted.columns), None)
+        
+        last_url = None
+        
+        for index, row in df_sorted.iterrows():
             if not step_col or pd.isna(row[step_col]):
                 continue
                 
@@ -107,17 +121,26 @@ class RunExcelAutomationUseCase:
             steps = str(row[step_col])
             data = str(row.get("Test Data", ""))
             expected = str(row.get("Expected Result", ""))
-            
-            # Construct strict Prompt for the Agent
+            row_url = row["_target_url"]
+                
+            # Programmatic Navigation/Reload (Saves Tokens & Ensures Clean State)
+            print(f"--- [Excel] Navigating to: {row_url} (Reloading/Ensuring fresh state) ---")
+            await session.navigate_to(row_url)
+            # Wait for stability after navigation
+            await self._wait_until_ready_on_session(session, row_url, wait_for_selector)
+            last_url = row_url
+
+            # Construct optimized Prompt (Focus ONLY on steps, Guided Planning)
             task_prompt = (
-                f"You are executing Test Case: {test_id} - {title}.\n"
-                f"Go to URL: {url}\n"
-                f"Test Data to use: {data}\n"
-                f"Test Steps to perform: {steps}\n\n"
-                f"After performing the steps, verify the Expected Result: {expected}.\n"
+                f"SYSTEM: You are a professional QA automation engineer.\n"
+                f"GOAL: Execute the following PRE-DEFINED test steps strictly in order. Do not deviate unless technically required.\n"
+                f"Test Data: {data}\n"
+                f"STEPS TO PERFORM:\n{steps}\n\n"
+                f"TIPS: Use direct actions like 'click', 'type_text', 'scroll_to', or 'extract_content' to minimize execution steps.\n"
+                f"VERIFY: {expected}\n\n"
                 f"Structure your final response EXACTLY as follows:\n"
-                f"ACTUAL: <short description of what actually happened>\n"
-                f"NOTES: <your thoughts, reasoning, or any abnormalities found during execution>\n"
+                f"ACTUAL: <short description>\n"
+                f"NOTES: <your thoughts>\n"
                 f"STATUS: <PASS or FAIL>"
             )
             
@@ -168,7 +191,7 @@ class RunExcelAutomationUseCase:
                     except Exception as e:
                         print(f"Failed to save screenshot: {e}")
 
-            # Update DF
+            # Update original DF using our tracker
             df.at[index, "Actual Result"] = actual_res
             if "Comments / Notes" not in df.columns:
                 df["Comments / Notes"] = ""
@@ -187,6 +210,9 @@ class RunExcelAutomationUseCase:
             os.remove(storage_state_path)
 
         # 5. Export Output Excel and Zip
+        # Restore original order and cleanup temporary columns
+        df = df.sort_values(by="_original_index").drop(columns=["_original_index", "_target_url"])
+        
         output_excel_path = os.path.join(results_dir, "output.xlsx")
         df.to_excel(output_excel_path, index=False)
         
@@ -202,19 +228,13 @@ class RunExcelAutomationUseCase:
         
         return run_id, zip_path
 
-    async def _wait_until_ready(self, browser, url: str, selector: str = None, timeout: int = 30):
-        """Wait for the page to reach a stable state (URL and/or Selector)."""
+    async def _wait_until_ready_on_session(self, session, url: str, selector: str = None, timeout: int = 30):
+        """Wait for the page to reach a stable state using an existing session."""
         import asyncio
         if not url and not selector:
             return
 
         print(f"--- [Excel] Waiting for Stabilization (Timeout: {timeout}s) ---")
-        # In Excel case, we need to get a session first
-        session = await browser._browser.get_session()
-        
-        if url:
-             await session.navigate_to(url)
-             
         page = await session.get_current_page()
         
         try:
@@ -237,3 +257,9 @@ class RunExcelAutomationUseCase:
 
         except Exception as e:
             print(f"--- [Excel] Stabilization Error: {e} ---")
+
+    async def _wait_until_ready(self, browser, url: str, selector: str = None, timeout: int = 30):
+        """Wait for the page to reach a stable state (URL and/or Selector)."""
+        # In Excel case, we need to get a session first
+        session = await browser._browser.get_session()
+        await self._wait_until_ready_on_session(session, url, selector, timeout)

@@ -9,6 +9,7 @@ Your Google Sheet **MUST** include the following headers in the first row (case-
 | Column Header | Description | Required | Example |
 | :--- | :--- | :---: | :--- |
 | **Test Case ID** | A unique identifier for the test case. | Yes | `TC-001` |
+| **URL** | The target URL for this specific test case. | No | `https://example.com/login` |
 | **Module / Feature** | The name of the module or feature being tested. | No | `Login`, `Checkout` |
 | **Test Scenario** | High-level goal of the test. | No | `Verify login with valid credentials` |
 | **Test Case Title** | The title of the test case. | Yes | `Successful Login` |
@@ -25,14 +26,32 @@ Your Google Sheet **MUST** include the following headers in the first row (case-
 
 ## 💡 Best Practices for Writing Test Cases
 
-### 1. Test Steps (Be Explicit)
-The AI Agent follows your steps literal. Use clear, numbered steps.
-- **Good:** `1. Click the "Login" button. 2. Enter "admin" in the username field.`
-- **Bad:** `Login to the app.`
+### 1. Test Steps (AI-Optimized Guidance)
 
-### 2. Test Data
-If you have multiple inputs, list them clearly. The Agent is good at extracting values from natural text or JSON.
-- **Example:** `Username: admin_user | Password: secret_password`
+To save tokens and ensure the Agent follows your plan strictly (Guided Planning), use **Direct Action Verbs** and **Numbered Lists**.
+
+#### ✅ Best Practices:
+- **Use Direct Keywords**: Refer to actions like `click`, `type_text`, `scroll_to`, `extract`, `hover`, or `press_key`.
+- **One Action per Step**: Keep steps simple and atomic.
+- **Refer to Elements by Label**: Use visible text on buttons (e.g., `Click "Add to Cart"` instead of `Click the green button`).
+
+#### ❌ Avoid:
+- Vague goals like "Try to buy something".
+- Compound steps like "Log in and then find the shoes and then buy them".
+
+#### 🔄 Example (Before vs. After):
+- **Bad**: `Go to login and enter credentials.`
+- **Good**:
+  1. `Click "Sign In" button`
+  2. `type_text "admin" into Username field` (Use data from **Test Data** column)
+  3. `type_text "pass123" into Password field`
+  4. `Click "Submit" button`
+
+### 2. Test Data (Contextual Integration)
+
+The Agent can extract values from this column automatically. You can provide JSON or a simple list.
+- **Recommended Format**: `{"username": "admin", "password": "secret"}`
+- **In Steps**: You can refer to them like `type_text the password from Test Data into the Password input`.
 
 ### 3. Agent Metadata
 You can also add a `model` column if you want to specify which LLM (e.g., `gpt-4o`, `gemini-1.5-pro`) to use for a specific test case.

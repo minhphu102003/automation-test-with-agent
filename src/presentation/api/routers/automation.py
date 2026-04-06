@@ -10,6 +10,11 @@ from typing import List
 import os
 import shutil
 import tempfile
+import pandas as pd
+import io
+from fastapi.responses import Response
+from src.application.services.gpt_bridge import GPTBridgeService
+from src.presentation.schemas.automation import GPTImportRequest
 
 router = APIRouter(prefix="/automation", tags=["automation"])
 
@@ -22,6 +27,9 @@ def get_automation_use_case():
     
 def get_excel_use_case():
     return RunExcelAutomationUseCase()
+
+def get_gpt_bridge_service():
+    return GPTBridgeService()
 
 @router.post("/run", response_model=AutomationRunResponse)
 async def run_automation(request: AutomationRunRequest, use_case: RunAutomationUseCase = Depends(get_automation_use_case)):
@@ -93,3 +101,38 @@ async def run_excel_automation(
 async def get_history(limit: int = 50, reader: LangfuseReader = Depends(get_langfuse_reader)):
     use_case = GetHistoryUseCase(reader)
     return use_case.execute(limit=limit)
+
+# GPT Bridge Endpoints
+@router.post("/gpt-bridge/prepare")
+async def prepare_gpt_prompt(
+    file: UploadFile = File(...),
+    service: GPTBridgeService = Depends(get_gpt_bridge_service)
+):
+    """Takes a raw Excel file and returns a prompt for GPT Web."""
+    try:
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
+        prompt = service.prepare_prompt(df)
+        return {"prompt": prompt}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error processing Excel: {str(e)}")
+
+@router.post("/gpt-bridge/convert")
+async def convert_gpt_to_excel(
+    request: GPTImportRequest,
+    service: GPTBridgeService = Depends(get_gpt_bridge_service)
+):
+    """Takes GPT output (text) and returns a downloadable Excel file."""
+    try:
+        test_cases = service.parse_gpt_output(request.raw_text)
+        if not test_cases:
+            raise HTTPException(status_code=400, detail="Could not parse any test cases from the provided text.")
+        
+        excel_data = service.export_to_excel(test_cases)
+        return Response(
+            content=excel_data,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=optimized_test_cases.xlsx"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error converting GPT output: {str(e)}")

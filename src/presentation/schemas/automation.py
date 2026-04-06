@@ -46,3 +46,25 @@ class MetricsSummary(BaseModel):
     total_cost_usd: float
     total_tokens: int
     avg_duration: float
+
+class TestCase(BaseModel):
+    id: Optional[str] = Field(None, alias="Test Case ID")
+    url: Optional[str] = Field(None, alias="URL")
+    feature: Optional[str] = Field(None, alias="Module / Feature")
+    scenario: Optional[str] = Field(None, alias="Test Scenario")
+    title: Optional[str] = Field(None, alias="Test Case Title")
+    description: Optional[str] = Field(None, alias="Description")
+    preconditions: Optional[str] = Field(None, alias="Preconditions")
+    data: Optional[str] = Field(None, alias="Test Data")
+    steps: Optional[str] = Field(None, alias="Test Steps")
+    expected: Optional[str] = Field(None, alias="Expected Result")
+    actual: Optional[str] = Field(None, alias="Actual Result")
+    status: Optional[str] = Field(None, alias="Status (Pass/Fail)")
+    comments: Optional[str] = Field(None, alias="Comments / Notes")
+
+    class Config:
+        populate_by_name = True
+
+class GPTImportRequest(BaseModel):
+    raw_text: str
+    target_url: Optional[str] = None
