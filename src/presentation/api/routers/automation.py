@@ -1,3 +1,4 @@
+from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import FileResponse
 from src.presentation.schemas.automation import AutomationRunRequest, AutomationRunResponse, TestRunHistory
@@ -6,7 +7,6 @@ from src.application.use_cases.run_excel import RunExcelAutomationUseCase
 from config.pricing import DEFAULT_MODEL
 from src.application.use_cases.get_metrics import GetHistoryUseCase
 from src.infrastructure.monitoring.langfuse_reader import LangfuseReader
-from typing import List
 import os
 import shutil
 import tempfile
@@ -119,12 +119,18 @@ async def prepare_gpt_prompt(
 
 @router.post("/gpt-bridge/convert")
 async def convert_gpt_to_excel(
-    request: GPTImportRequest,
+    raw_text: str = Form(...),
     service: GPTBridgeService = Depends(get_gpt_bridge_service)
 ):
     """Takes GPT output (text) and returns a downloadable Excel file."""
     try:
-        test_cases = service.parse_gpt_output(request.raw_text)
+        # DEBUG: Log what we actually received
+        lines_count = raw_text.count('\n')
+        literal_n_count = raw_text.count('\\n')
+        print(f"--- [GPT Bridge] Received raw_text: {len(raw_text)} chars, {lines_count} real newlines, {literal_n_count} literal \\n ---")
+        print(f"--- [GPT Bridge] First 300 chars: {repr(raw_text[:300])} ---")
+        
+        test_cases = service.parse_gpt_output(raw_text)
         if not test_cases:
             raise HTTPException(status_code=400, detail="Could not parse any test cases from the provided text.")
         

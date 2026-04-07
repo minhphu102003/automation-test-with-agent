@@ -59,7 +59,7 @@ class TestCase(BaseModel):
     steps: Optional[str] = Field(None, alias="Test Steps")
     expected: Optional[str] = Field(None, alias="Expected Result")
     actual: Optional[str] = Field(None, alias="Actual Result")
-    status: Optional[str] = Field(None, alias="Status (Pass/Fail)")
+    status: Optional[str] = Field(None, alias="Status")
     comments: Optional[str] = Field(None, alias="Comments / Notes")
 
     class Config:
@@ -67,4 +67,3 @@ class TestCase(BaseModel):
 
 class GPTImportRequest(BaseModel):
     raw_text: str
-    target_url: Optional[str] = None
