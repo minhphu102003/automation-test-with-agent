@@ -67,3 +67,8 @@ class TestCase(BaseModel):
 
 class GPTImportRequest(BaseModel):
     raw_text: str
+    base_url: Optional[str] = "https://www.google.com"
+
+class JobResponse(BaseModel):
+    job_id: str
+    status: str = "queued"

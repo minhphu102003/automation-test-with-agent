@@ -1,0 +1,33 @@
+# 🛠 Global Configuration for Browser-Testing Suite
+
+app:
+  name: "Browser-Testing Automation"
+  env: "development"
+  debug: true
+
+storage:
+  type: "s3" # minio is s3-compatible
+  endpoint_url: "${S3_ENDPOINT_URL}"
+  access_key: "${S3_ACCESS_KEY}"
+  secret_key: "${S3_SECRET_KEY}"
+  bucket_name: "${S3_BUCKET_NAME:-automation-evidence}"
+  region: "${S3_REGION:-us-east-1}"
+  public_url_prefix: "${S3_PUBLIC_URL_PREFIX}"
+
+messaging:
+  type: "redis"
+  host: "${REDIS_HOST:-localhost}"
+  port: ${REDIS_PORT:-6379}
+  db: ${REDIS_DB:-0}
+  password: "${REDIS_PASSWORD}"
+  stream_ttl_hours: 5
+
+worker:
+  concurrency: 5
+  queue_name: "automation_tasks"
+  redis_url: "redis://${REDIS_HOST:-localhost}:${REDIS_PORT:-6379}/${REDIS_DB:-0}"
+
+agent:
+  default_model: "gpt-4o-mini"
+  max_steps: 10
+  use_vision: true

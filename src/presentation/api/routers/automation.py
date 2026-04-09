@@ -102,43 +102,64 @@ async def get_history(limit: int = 50, reader: LangfuseReader = Depends(get_lang
     use_case = GetHistoryUseCase(reader)
     return use_case.execute(limit=limit)
 
-# GPT Bridge Endpoints
-@router.post("/gpt-bridge/prepare")
-async def prepare_gpt_prompt(
-    file: UploadFile = File(...),
-    service: GPTBridgeService = Depends(get_gpt_bridge_service)
-):
-    """Takes a raw Excel file and returns a prompt for GPT Web."""
-    try:
-        contents = await file.read()
-        df = pd.read_excel(io.BytesIO(contents))
-        prompt = service.prepare_prompt(df)
-        return {"prompt": prompt}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error processing Excel: {str(e)}")
+from src.application.use_cases.run_gpt_automation import RunGptAutomationUseCase
+from src.infrastructure.external.redis_stream_adapter import RedisStreamAdapter
+from src.presentation.schemas.automation import JobResponse
+from src.infrastructure.config.loader import settings
+import json
+from fastapi.responses import StreamingResponse
 
-@router.post("/gpt-bridge/convert")
-async def convert_gpt_to_excel(
-    raw_text: str = Form(...),
-    service: GPTBridgeService = Depends(get_gpt_bridge_service)
+# ... (rest of old logic)
+
+@router.post("/gpt-bridge/run", response_model=JobResponse)
+async def run_gpt_automation(
+    request: GPTImportRequest, 
+    use_case: RunGptAutomationUseCase = Depends(RunGptAutomationUseCase)
 ):
-    """Takes GPT output (text) and returns a downloadable Excel file."""
+    """Parses GPT text and enqueues a background job."""
     try:
-        # DEBUG: Log what we actually received
-        lines_count = raw_text.count('\n')
-        literal_n_count = raw_text.count('\\n')
-        print(f"--- [GPT Bridge] Received raw_text: {len(raw_text)} chars, {lines_count} real newlines, {literal_n_count} literal \\n ---")
-        print(f"--- [GPT Bridge] First 300 chars: {repr(raw_text[:300])} ---")
-        
-        test_cases = service.parse_gpt_output(raw_text)
-        if not test_cases:
-            raise HTTPException(status_code=400, detail="Could not parse any test cases from the provided text.")
-        
-        excel_data = service.export_to_excel(test_cases)
-        return Response(
-            content=excel_data,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": "attachment; filename=optimized_test_cases.xlsx"}
-        )
+        job_id = await use_case.execute(request.raw_text, base_url=request.base_url)
+        return JobResponse(job_id=job_id)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error converting GPT output: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/jobs/{job_id}/stream")
+async def stream_job_updates(
+    job_id: str,
+    last_id: str = "0",
+    adapter: RedisStreamAdapter = Depends(RedisStreamAdapter)
+):
+    """Streams job updates from Redis via SSE."""
+    
+    async def event_generator():
+        current_id = last_id
+        # Send initial message to establish connection
+        yield f"id: 0\nevent: ping\ndata: {json.dumps({'message': 'connected'})}\n\n"
+        
+        while True:
+            try:
+                # Read from Redis stream
+                events = await adapter.read_stream(job_id, last_id=current_id, timeout_ms=5000)
+                
+                for event in events:
+                    current_id = event["id"]
+                    payload = event["data"]
+                    
+                    # Yield in SSE format
+                    yield f"id: {current_id}\nevent: message\ndata: {json.dumps(payload)}\n\n"
+                    
+                    # If job is finished or errored, we can stop streaming 
+                    # (though client usually handles closing)
+                    if payload.get("type") in ["RUNNER_FINISHED", "ERROR"]:
+                        return
+
+                # Heartbeat to keep connection alive
+                if not events:
+                    yield f": heartbeat\n\n"
+                
+                await asyncio.sleep(0.5)
+            except Exception as e:
+                yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
+                return
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

@@ -22,9 +22,20 @@ dependencies = [
     "pandas>=2.3.3",
     "openpyxl>=3.1.5",
     "python-multipart>=0.0.22",
+    "pyyaml>=6.0.3",
+    "pydantic-settings>=2.13.1",
+    "arq>=0.27.0",
+    "redis>=5.3.1",
+    "aioboto3>=15.5.0",
 ]
 
 [dependency-groups]
 dev = [
     "pre-commit>=4.5.1",
 ]
+
+[tool.pyright]
+include = ["src"]
+extraPaths = ["."]
+# Helps Pylance/Pyright recognize absolute imports starting with 'src.'
+# without incorrectly inferring 'src' as the root.
