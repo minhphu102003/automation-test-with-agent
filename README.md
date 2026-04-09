@@ -1,106 +1,85 @@
-# Browser-Testing with AI Agents
-# Browser-Use Automation & Browser Testing Suite
+# Browser Testing Automation Suite
 
-**Version**: `1.0.0` | **License**: MIT | **Status**: Stable (Clean Architecture)
+**Version**: `1.1.0` | **License**: MIT | **Status**: Active (Full Stack Clean Architecture)
 
-## 📋 System Requirements (Total)
+This project is a complete automation testing suite designed for robust, AI-driven browser automation. It leverages `browser-use` alongside a comprehensive full-stack ecosystem to queue, process, and present automation executions.
 
-- **CPU**: 3.0 Cores (Reserved: 1.5)
-- **RAM**: 6.0 GB (Reserved: 3.0 GB)
-- **Disk**: 2 GB free space
-- **Software**: Docker Desktop / Engine with Compose v2+
+## 🏗️ System Architecture
 
-This project is a professional automation testing suite built with `browser-use`. It is designed to evaluate the feasibility of AI-driven browser automation by tracking execution performance and LLM API costs using Langfuse.
+The project consists of multiple interacting services:
 
-## 🚀 Quick Start with Docker
+1. **Frontend (Next.js)**: A modular React application built with Atomic Design principles, serving the dashboard on port `3000`.
+2. **Backend (FastAPI)**: Serves core APIs adhering to Clean Architecture on port `8001`.
+3. **Worker**: Background execution environment handling long-running `browser-use` automation tasks.
+4. **Redis**: In-memory message broker to facilitate async task queuing between the Backend and Worker.
+5. **MinIO**: S3-compatible local object storage serving test artifacts, screenshots, and logs on port `9000` (Console on `9001`).
 
-The easiest way to run the entire suite is using Docker Compose.
+```text
+/
+  ├── frontend/       # Next.js web application built with Atomic Design.
+  ├── src/            # Backend Clean Architecture (FastAPI + Workers).
+  │    ├── domain/         # Core logic, entities, interfaces.
+  │    ├── application/    # Use Cases, QA test logic, orchestrator.
+  │    ├── infrastructure/ # External dependencies (MinIO, Redis, Langfuse, Playwright).
+  │    ├── presentation/   # FastAPI application, routers, schemas. 
+  │    └── prompts/        # Centralized LLM prompts.
+  └── docker/         # Dockerfiles for respective services.
+```
 
-1. **Build & Start**:
-   ```bash
-   docker compose up --build -d
-   ```
-2. **Access Services**:
-   - **Main Dashboard**: [http://localhost:3000](http://localhost:3000)
-   - **Backend API**: [http://localhost:8000/docs](http://localhost:8000/docs)
-   - **Langfuse Tracing**: Cloud Dashboard
+## 🚀 Quick Start (Docker - Recommended)
 
-For detailed configuration and resource management, see the [Docker Deployment Guide](docs/docker_guide.md).
+The simplest way to orchestrate the entire stack (Backend, Frontend, Setup, Redis, and MinIO) is using Docker Compose.
 
-## 🏗️ Project Architecture
+```powershell
+docker compose up --build -d
+```
+Upon successful start, you can access:
+- **Dashboard (Frontend)**: [http://localhost:3000](http://localhost:3000)
+- **Backend API (Swagger)**: [http://localhost:8001/docs](http://localhost:8001/docs)
+- **MinIO Console**: [http://localhost:9001](http://localhost:9001)
 
-The project follows a modular, layered architecture:
+*(Note: Provide valid `.env` keys for OpenAI/Langfuse prior to spinning up containers).*
 
-- **`src/core/`**: Centralized logic for initializing the Browser, LLM wrappers, and the `browser-use` Agent.
-- **`src/monitoring/`**: Integration with Langfuse to capture token usage, execution time, and computed costs.
-- **`config/`**: Shared configuration, including model pricing data for cost calculation.
-- **`tests/`**: Dedicated directory for individual automation test scenarios and scripts.
-- **`.agents/`**: Modular rules and guidelines for AI agents working in this repository.
+## 💻 Manual Developer Setup (Local)
 
-## 🚀 Getting Started
+If you need to develop specific layers without Docker:
 
-### 1. Prerequisites
-- [uv](https://github.com/astral-sh/uv) installed.
-- Playwright browsers installed: `uv run playwright install`.
-
-### 2. Setup
-Clone the repository and sync dependencies:
+### 1. Backend / Worker Stack
 ```powershell
 uv sync
+uv run playwright install
+
+# Run FastAPI Server (Terminal 1)
+uv run python src/presentation/api/main.py
+
+# (Assuming external Redis & MinIO are available for the worker queue)
 ```
 
-### 3. Configuration
-Create a `.env` file based on `.env.example` and add your API keys:
-```env
-OPENAI_API_KEY=your_key_here
-# Optional: GOOGLE_API_KEY=your_key_here
+### 2. Frontend Stack
+Navigate to the frontend folder and install dependencies:
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
-### 4. Running Tests
-Run the centralized runner to execute automation scenarios:
-```powershell
-uv run python main.py
-```
+## 🤖 Core Capabilities
 
-## 📊 Monitoring & Cost Tracking
-
-### Viewing Results
-To view detailed metrics, including token usage and estimated USD costs:
-1. Log into your [Langfuse Cloud](https://langfuse.com) dashboard.
-2. Select your project and navigate to **Traces** to view step-by-step executions or **Dashboard** to view aggregate costs.
-
-## 📁 Data-Driven Testing (Google Sheets)
-
-The suite can read tasks from a Google Sheet to perform large-scale automation tests.
-
-### Detailed Guides:
-1.  **[Google Sheets Setup Guide](docs/google_sheets_setup.md)**: Steps for API setup, credentials, and sharing.
-2.  **[Test Case Template Guide](docs/test_case_template.md)**: How to structure your Google Sheet (13-field format) for the AI Agent.
-
-### Activation:
-- Open `main.py`.
-- Uncomment: `await run_structured_tests("YourSheetName")`.
-
-## 🛠️ Project Evolution
-This structure is built for scalability. To add a new test scenario, create a new file in the `tests/` directory and register it in `main.py`.
+- **GPT Bridge Generation**: Convert raw textual QA instructions into formal 13-column test scenarios dynamically using standard prompt techniques.
+- **Browser Automation Agent**: Dynamically executes test sequences via `browser-use`. Extracted elements and trace recordings are piped back to the user via background workers.
+- **Cost Profiling**: Comprehensive Langfuse integration tracks and scopes every test trace, reporting execution times, and monitoring tokens usage to evaluate LLM costs.
+- **Distributed Architecture**: Uses Redis & MinIO to asynchronously perform high-intensity AI Web navigation without blocking API clients.
 
 ## 🤖 AI Agent Setup (CRITICAL)
 
-To get the most out of this project with an AI Agent (like Cursor, Claude Desktop, or Windsurf), you **MUST** configure the **Context7 MCP server**. This tool allows the AI to fetch real-time documentation for `playwright` and `browser-use`.
-
-### Context7 MCP Configuration
-
-Add the following configuration to your AI IDE or Desktop application (e.g., `mcp_config.json`):
+To optimally assist in this codebase, configure your AI IDE context with the **Context7 MCP server** for real-time external library resolutions (`playwright`, `browser-use`, `next.js`, `fastapi`).
 
 ```json
 {
   "mcpServers": {
     "context7": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@upstash/context7-mcp@latest"
-      ],
+      "args": ["-y", "@upstash/context7-mcp@latest"],
       "env": {
         "CONTEXT7_API_KEY": "YOUR_UPSTASH_CONTEXT7_TOKEN"
       }
@@ -109,14 +88,8 @@ Add the following configuration to your AI IDE or Desktop application (e.g., `mc
 }
 ```
 
-- **Get an API Key**: Visit the [Upstash Console](https://console.upstash.com/context7) to create a free Context7 token.
-- **Why this is needed**: Many libraries in this project update their APIs frequently. This MCP ensures the AI doesn't guess old syntax.
-
-## 📁 Repository Structure
-
-- `main.py`: The entry point for the browser agent.
-- `.agents/`: Contains modular rules and instructions for AI agents.
-- `.env`: Location for your secret API keys (Git ignored).
-
-## 📄 License
-This project is for demonstration purposes. Use it as a boilerplate for your own AI-powered testing!
+## 📁 Agentic Guidelines
+All tasks strictly enforce modular rules mapped out in the `.agents/` folder:
+- **Clean Architecture Rules**: `.agents/rules/backend_clean_architecture.md`
+- **Frontend Guidelines**: `.agents/rules/frontend_atomic_design.md` 
+- **Context7 Usage**: `.agents/rules/context7_mcp.md`
