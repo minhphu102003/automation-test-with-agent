@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 class RunGptAutomationUseCase:
     """Use case to parse GPT text and enqueue an automation job."""
     
-    def __init__(self):
-        self.gpt_service = GPTBridgeService()
+    def __init__(self, gpt_service: GPTBridgeService):
+        self.gpt_service = gpt_service
 
     async def execute(
         self, 

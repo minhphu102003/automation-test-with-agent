@@ -78,3 +78,7 @@ class MinioStorageAdapter(IStorageService):
             # Fallback to generating a simple URL if no prefix is set
             # (Note: this assumes the host is accessible)
             return f"{self.conf.endpoint_url or 'http://localhost'}/{self.conf.bucket_name}/{filename}"
+
+    async def close(self) -> None:
+        """Closes any persistent resources (none currently)."""
+        pass

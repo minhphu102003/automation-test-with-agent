@@ -18,26 +18,25 @@ class TestSuiteRunner:
     def __init__(
         self, 
         storage: IStorageService, 
-        messaging: IEventStreamService,
-        job_id: str
+        messaging: IEventStreamService
     ):
         self.storage = storage
         self.messaging = messaging
-        self.job_id = job_id
         self.conf = settings.agent
 
     async def run_suite(
         self, 
         test_cases: List[TestCase], 
         base_url: str,
+        job_id: str,
         auth_data: Optional[Dict[str, Any]] = None,
         model_name: Optional[str] = None
     ) -> List[TestCase]:
         model_name = model_name or self.conf.default_model
         
         # 1. Initialize Browser
-        logger.info(f"--- [Job {self.job_id}] Initializing Browser ---")
-        await self._notify("RUNNER_INIT", {"message": "Initializing browser and authentication..."})
+        logger.info(f"--- [Job {job_id}] Initializing Browser ---")
+        await self._notify(job_id, "RUNNER_INIT", {"message": "Initializing browser and authentication..."})
         
         browser = create_browser(headless=True)
         try:
@@ -46,7 +45,7 @@ class TestSuiteRunner:
             # 2. Execution Loop
             total = len(test_cases)
             for idx, tc in enumerate(test_cases):
-                await self._notify("TEST_STARTED", {
+                await self._notify(job_id, "TEST_STARTED", {
                     "test_id": tc.id,
                     "title": tc.title,
                     "index": idx + 1,
@@ -55,7 +54,7 @@ class TestSuiteRunner:
                 
                 # Navigate and stabilize
                 target_url = tc.url or base_url
-                logger.info(f"--- [Job {self.job_id}] Running TC {idx+1}/{total}: {tc.title} ---")
+                logger.info(f"--- [Job {job_id}] Running TC {idx+1}/{total}: {tc.title} ---")
                 await session.navigate_to(target_url)
                 
                 # Execution logic (similar to RunExcelAutomationUseCase)
@@ -71,34 +70,34 @@ class TestSuiteRunner:
                 tc.actual = self._extract_actual_result(final_text)
                 
                 # Capture and Upload Evidence
-                evidence_url = await self._capture_evidence(history, tc.id)
+                evidence_url = await self._capture_evidence(job_id, history, tc.id)
                 tc.comments = evidence_url # Store URL in comments for now
                 
-                await self._notify("TEST_COMPLETED", {
+                await self._notify(job_id, "TEST_COMPLETED", {
                     "test_id": tc.id,
                     "status": tc.status,
                     "actual_result": tc.actual,
                     "evidence_url": evidence_url
                 })
 
-            await self._notify("RUNNER_FINISHED", {"message": "All test cases completed."})
+            await self._notify(job_id, "RUNNER_FINISHED", {"message": "All test cases completed."})
             return test_cases
 
         finally:
             await browser.kill()
 
-    async def _notify(self, type: str, data: Dict[str, Any]):
+    async def _notify(self, job_id: str, type: str, data: Dict[str, Any]):
         """Helper to send updates to the Redis stream."""
-        await self.messaging.publish_event(self.job_id, {"type": type, "payload": data})
+        await self.messaging.publish_event(job_id, {"type": type, "payload": data})
 
-    async def _capture_evidence(self, history, test_id: str) -> Optional[str]:
+    async def _capture_evidence(self, job_id: str, history, test_id: str) -> Optional[str]:
         """Captures last screenshot and uploads to storage."""
         if history and hasattr(history, 'history') and len(history.history) > 0:
             last_state = history.history[-1].state
             if last_state and hasattr(last_state, 'screenshot') and last_state.screenshot:
                 try:
                     img_data = base64.b64decode(last_state.screenshot)
-                    filename = f"jobs/{self.job_id}/{test_id}_evidence.png"
+                    filename = f"jobs/{job_id}/{test_id}_evidence.png"
                     url = await self.storage.upload_file(img_data, filename)
                     return url
                 except Exception as e:

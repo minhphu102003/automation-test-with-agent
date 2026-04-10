@@ -12,23 +12,57 @@ project_root = os.path.abspath(os.path.join(current_dir, "../../.."))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
+import contextlib
+import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-import uvicorn
+
+# --- Domain & Infrastructure ---
+from src.infrastructure.monitoring.langfuse_reader import LangfuseReader
+from src.infrastructure.external.redis_stream_adapter import RedisStreamAdapter
+from src.infrastructure.external.minio_storage import MinioStorageAdapter
 from src.presentation.api.error_handlers import global_exception_handler
 from src.domain.exceptions.base import AppBaseException
 
-app = FastAPI()
+# --- Routers ---
+from src.presentation.api.routers import automation, metrics
+
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manages application startup and shutdown events."""
+    print("--- [Backend] Starting up (Initializing shared adapters) ---")
+    
+    # 1. Initialize Adapters
+    langfuse_reader = LangfuseReader()
+    messaging = RedisStreamAdapter()
+    storage = MinioStorageAdapter()
+    
+    # 2. Ensure resources are ready
+    try:
+        await storage.ensure_bucket_exists()
+    except Exception as e:
+        print(f"--- Warning: MinIO connection failed: {e} ---")
+        
+    # 3. Store in app state for DI providers
+    app.state.langfuse_reader = langfuse_reader
+    app.state.messaging = messaging
+    app.state.storage = storage
+    
+    print(f"--- [STABLE] Backend Running on Port 8001 with {type(asyncio.get_event_loop()).__name__} ---")
+    
+    yield
+    
+    # 4. Cleanup
+    print("--- [Backend] Shutting down (Closing shared adapters) ---")
+    await messaging.close()
+    await storage.close()
+
+app = FastAPI(lifespan=lifespan)
 
 # Global Exception Handlers
 app.add_exception_handler(Exception, global_exception_handler)
 app.add_exception_handler(AppBaseException, global_exception_handler)
 
-@app.on_event("startup")
-async def startup():
-    print(f"--- [STABLE] Backend Running on Port 8001 with {type(asyncio.get_event_loop()).__name__} ---")
-
-from src.presentation.api.routers import automation, metrics
 app.include_router(automation.router, prefix="/api/v1")
 app.include_router(metrics.router, prefix="/api/v1")
 

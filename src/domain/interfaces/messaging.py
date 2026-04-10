@@ -47,3 +47,8 @@ class IEventStreamService(ABC):
     async def set_expiration(self, stream_id: str, seconds: int) -> None:
         """Sets a TTL for the stream."""
         pass
+        
+    @abstractmethod
+    async def close(self) -> None:
+        """Closes the underlying connection/pool."""
+        pass

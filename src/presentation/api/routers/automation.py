@@ -1,38 +1,46 @@
-from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
-from fastapi.responses import FileResponse
-from src.presentation.schemas.automation import AutomationRunRequest, AutomationRunResponse, TestRunHistory
-from src.application.use_cases.run_automation import RunAutomationUseCase
-from src.application.use_cases.run_excel import RunExcelAutomationUseCase
-from config.pricing import DEFAULT_MODEL
-from src.application.use_cases.get_metrics import GetHistoryUseCase
-from src.infrastructure.monitoring.langfuse_reader import LangfuseReader
 import os
 import shutil
 import tempfile
 import pandas as pd
 import io
-from fastapi.responses import Response
+import asyncio
+import json
+from typing import Optional, List
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi.responses import FileResponse, StreamingResponse, Response
+
+from config.pricing import DEFAULT_MODEL
+from src.infrastructure.config.loader import settings
+
+# --- Domain & Infrastructure ---
+from src.infrastructure.monitoring.langfuse_reader import LangfuseReader
+from src.infrastructure.external.redis_stream_adapter import RedisStreamAdapter
+
+# --- Services & Use Cases ---
 from src.application.services.gpt_bridge import GPTBridgeService
-from src.presentation.schemas.automation import GPTImportRequest
+from src.application.use_cases.run_automation import RunAutomationUseCase
+from src.application.use_cases.run_excel import RunExcelAutomationUseCase
+from src.application.use_cases.get_metrics import GetHistoryUseCase
+from src.application.use_cases.run_gpt_automation import RunGptAutomationUseCase
+from src.application.use_cases.stream_job_updates import StreamJobUpdatesUseCase
 
-router = APIRouter(prefix="/automation", tags=["automation"])
+# --- Schemas ---
+from src.presentation.schemas.automation import (
+    AutomationRunRequest, 
+    AutomationRunResponse, 
+    TestRunHistory,
+    GPTImportRequest,
+    JobResponse
+)
 
-# Dependency Injection Setup
-def get_langfuse_reader():
-    return LangfuseReader()
-
-def get_automation_use_case():
-    return RunAutomationUseCase()
-    
-def get_excel_use_case():
-    return RunExcelAutomationUseCase()
-
-def get_gpt_bridge_service():
-    return GPTBridgeService()
+# Centralized Dependency Injection
+from src.infrastructure.di import providers
 
 @router.post("/run", response_model=AutomationRunResponse)
-async def run_automation(request: AutomationRunRequest, use_case: RunAutomationUseCase = Depends(get_automation_use_case)):
+async def run_automation(
+    request: AutomationRunRequest, 
+    use_case: RunAutomationUseCase = Depends(providers.get_automation_use_case)
+):
     run_id, _ = await use_case.execute(
         request.task, 
         request.model,
@@ -67,7 +75,7 @@ async def run_excel_automation(
     max_steps: int = Form(5),
     wait_for_url: Optional[str] = Form(None),
     wait_for_selector: Optional[str] = Form(None),
-    use_case: RunExcelAutomationUseCase = Depends(get_excel_use_case)
+    use_case: RunExcelAutomationUseCase = Depends(providers.get_excel_use_case)
 ):
     tmp_path = None
     try:
@@ -98,23 +106,16 @@ async def run_excel_automation(
             os.remove(tmp_path)
 
 @router.get("/history", response_model=List[TestRunHistory])
-async def get_history(limit: int = 50, reader: LangfuseReader = Depends(get_langfuse_reader)):
-    use_case = GetHistoryUseCase(reader)
+async def get_history(
+    limit: int = 50, 
+    use_case: GetHistoryUseCase = Depends(providers.get_history_use_case)
+):
     return use_case.execute(limit=limit)
-
-from src.application.use_cases.run_gpt_automation import RunGptAutomationUseCase
-from src.infrastructure.external.redis_stream_adapter import RedisStreamAdapter
-from src.presentation.schemas.automation import JobResponse
-from src.infrastructure.config.loader import settings
-import json
-from fastapi.responses import StreamingResponse
-
-# ... (rest of old logic)
 
 @router.post("/gpt-bridge/run", response_model=JobResponse)
 async def run_gpt_automation(
     request: GPTImportRequest, 
-    use_case: RunGptAutomationUseCase = Depends(RunGptAutomationUseCase)
+    use_case: RunGptAutomationUseCase = Depends(providers.get_run_gpt_use_case)
 ):
     """Parses GPT text and enqueues a background job."""
     try:
@@ -127,39 +128,10 @@ async def run_gpt_automation(
 async def stream_job_updates(
     job_id: str,
     last_id: str = "0",
-    adapter: RedisStreamAdapter = Depends(RedisStreamAdapter)
+    use_case: StreamJobUpdatesUseCase = Depends(providers.get_stream_updates_use_case)
 ):
     """Streams job updates from Redis via SSE."""
-    
-    async def event_generator():
-        current_id = last_id
-        # Send initial message to establish connection
-        yield f"id: 0\nevent: ping\ndata: {json.dumps({'message': 'connected'})}\n\n"
-        
-        while True:
-            try:
-                # Read from Redis stream
-                events = await adapter.read_stream(job_id, last_id=current_id, timeout_ms=5000)
-                
-                for event in events:
-                    current_id = event["id"]
-                    payload = event["data"]
-                    
-                    # Yield in SSE format
-                    yield f"id: {current_id}\nevent: message\ndata: {json.dumps(payload)}\n\n"
-                    
-                    # If job is finished or errored, we can stop streaming 
-                    # (though client usually handles closing)
-                    if payload.get("type") in ["RUNNER_FINISHED", "ERROR"]:
-                        return
-
-                # Heartbeat to keep connection alive
-                if not events:
-                    yield f": heartbeat\n\n"
-                
-                await asyncio.sleep(0.5)
-            except Exception as e:
-                yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
-                return
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        use_case.execute(job_id, last_id), 
+        media_type="text/event-stream"
+    )

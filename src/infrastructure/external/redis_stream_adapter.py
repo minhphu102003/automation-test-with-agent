@@ -72,3 +72,9 @@ class RedisStreamAdapter(IEventStreamService):
         key = f"job_stream:{stream_id}"
         r = await self._get_redis()
         await r.expire(key, seconds)
+
+    async def close(self) -> None:
+        """Closes the Redis connection if it exists."""
+        if self._redis is not None:
+            await self._redis.close()
+            self._redis = None

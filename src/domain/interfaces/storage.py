@@ -28,3 +28,8 @@ class IStorageService(ABC):
     async def ensure_bucket_exists(self) -> None:
         """Ensures the target bucket exists and is properly configured."""
         pass
+
+    @abstractmethod
+    async def close(self) -> None:
+        """Closes the underlying storage session."""
+        pass
