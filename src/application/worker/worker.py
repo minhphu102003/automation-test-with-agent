@@ -1,5 +1,6 @@
 import asyncio
 from arq import cron
+from arq.connections import RedisSettings
 from src.infrastructure.config.loader import settings
 from src.infrastructure.external.minio_storage import MinioStorageAdapter
 from src.infrastructure.external.redis_stream_adapter import RedisStreamAdapter
@@ -40,7 +41,7 @@ async def run_test_suite_task(
 class WorkerSettings:
     """Settings used by the arq worker process."""
     functions = [run_test_suite_task]
-    redis_settings = settings.worker.redis_url # Uses url string directly
+    redis_settings = RedisSettings.from_dsn(settings.worker.redis_url)
     
     # Arq expects redis_settings to be a RedisConfig instance or URL
     # We will use the URL from our config

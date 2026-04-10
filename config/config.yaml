@@ -19,13 +19,13 @@ messaging:
   host: "${REDIS_HOST:-localhost}"
   port: ${REDIS_PORT:-6379}
   db: ${REDIS_DB:-0}
-  password: "${REDIS_PASSWORD}"
+  password: "${REDIS_PASSWORD:-password123}"
   stream_ttl_hours: 5
-
+ 
 worker:
   concurrency: 5
   queue_name: "automation_tasks"
-  redis_url: "redis://${REDIS_HOST:-localhost}:${REDIS_PORT:-6379}/${REDIS_DB:-0}"
+  redis_url: "redis://:${REDIS_PASSWORD:-password123}@${REDIS_HOST:-localhost}:${REDIS_PORT:-6379}/${REDIS_DB:-0}"
 
 agent:
   default_model: "gpt-4o-mini"

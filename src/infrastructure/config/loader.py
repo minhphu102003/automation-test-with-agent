@@ -64,15 +64,21 @@ class Settings(BaseSettings):
     """Main Settings Class that loads from YAML and allows .env overrides."""
     model_config = SettingsConfigDict(env_file='.env', env_nested_delimiter='__', extra='ignore')
     
-    _config_cache: Optional[RootConfig] = None
+# Global cache for settings
+_settings_cache: Optional[RootConfig] = None
+
+class Settings(BaseSettings):
+    """Main Settings Class that loads from YAML and allows .env overrides."""
+    model_config = SettingsConfigDict(env_file='.env', env_nested_delimiter='__', extra='ignore')
 
     @classmethod
     def load(cls, config_path: str = "config/config.yaml") -> RootConfig:
-        if cls._config_cache is None:
+        global _settings_cache
+        if _settings_cache is None:
             # Load YAML first
             raw_data = _load_yaml_with_env(config_path)
-            cls._config_cache = RootConfig(**raw_data)
-        return cls._config_cache
+            _settings_cache = RootConfig(**raw_data)
+        return _settings_cache
 
 # Global settings instance
 settings = Settings.load()
