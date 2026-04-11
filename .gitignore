@@ -171,3 +171,6 @@ credentials.json
 
 *.db
 *.xlsx
+
+# Oh-My-Codex (omx)
+.omx/

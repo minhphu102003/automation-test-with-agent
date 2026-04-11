@@ -1,5 +1,5 @@
 from fastapi import Depends, Request
-from src.infrastructure.monitoring.langfuse_reader import LangfuseReader
+from src.domain.interfaces.metrics import IMetricsReader
 from src.infrastructure.external.redis_stream_adapter import RedisStreamAdapter
 from src.infrastructure.external.minio_storage import MinioStorageAdapter
 from src.application.services.gpt_bridge import GPTBridgeService
@@ -13,7 +13,7 @@ from src.application.use_cases.stream_job_updates import StreamJobUpdatesUseCase
 
 # --- Service/Adapter Factories ---
 
-def get_langfuse_reader(request: Request) -> LangfuseReader:
+def get_langfuse_reader(request: Request) -> IMetricsReader:
     return request.app.state.langfuse_reader
 
 def get_messaging_service(request: Request) -> RedisStreamAdapter:
@@ -34,12 +34,12 @@ def get_excel_use_case() -> RunExcelAutomationUseCase:
     return RunExcelAutomationUseCase()
 
 def get_history_use_case(
-    reader: LangfuseReader = Depends(get_langfuse_reader)
+    reader: IMetricsReader = Depends(get_langfuse_reader)
 ) -> GetHistoryUseCase:
     return GetHistoryUseCase(reader)
 
 def get_metrics_summary_use_case(
-    reader: LangfuseReader = Depends(get_langfuse_reader)
+    reader: IMetricsReader = Depends(get_langfuse_reader)
 ) -> GetMetricsSummaryUseCase:
     return GetMetricsSummaryUseCase(reader)
 

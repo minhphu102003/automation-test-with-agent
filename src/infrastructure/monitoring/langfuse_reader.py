@@ -1,12 +1,20 @@
-from langfuse import Langfuse
-from typing import List, Dict, Any
 from datetime import datetime, timezone
-from src.presentation.schemas.automation import TestRunHistory, TokenUsage
+from typing import List
 
-class LangfuseReader:
-    def __init__(self, experiment_name: str = "Browser Automation Tests"): # Changed to match run_automation.py
+from langfuse import Langfuse
+
+from src.domain.interfaces.metrics import IMetricsReader
+from src.domain.models.metrics import MetricsSummary, TestRunHistory, TokenUsage
+
+
+class LangfuseReader(IMetricsReader):
+    def __init__(
+        self,
+        experiment_name: str = "Browser Automation Tests",
+        client: Langfuse | None = None,
+    ):
         self.experiment_name = experiment_name
-        self.langfuse = Langfuse()
+        self.langfuse = client or Langfuse()
         
     def get_history(self, limit: int = 50) -> List[TestRunHistory]:
         try:
@@ -46,7 +54,7 @@ class LangfuseReader:
             
         return history
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> MetricsSummary:
         try:
             traces_response = self.langfuse.api.trace.list(limit=100, tags=[self.experiment_name])
             traces = getattr(traces_response, 'data', [])
@@ -55,13 +63,13 @@ class LangfuseReader:
             traces = []
 
         if not traces:
-            return {
-                "total_runs": 0,
-                "success_rate": 0.0,
-                "total_cost_usd": 0.0,
-                "total_tokens": 0,
-                "avg_duration": 0.0
-            }
+            return MetricsSummary(
+                total_runs=0,
+                success_rate=0.0,
+                total_cost_usd=0.0,
+                total_tokens=0,
+                avg_duration=0.0,
+            )
             
         total_runs = len(traces)
         
@@ -79,10 +87,10 @@ class LangfuseReader:
         total_cost = sum(float(getattr(t, 'total_cost', 0.0) or 0.0) for t in traces)
         avg_duration = total_duration / total_runs if total_runs > 0 else 0.0
         
-        return {
-            "total_runs": total_runs,
-            "success_rate": success_rate,
-            "total_cost_usd": total_cost,
-            "total_tokens": total_tokens,
-            "avg_duration": avg_duration
-        }
+        return MetricsSummary(
+            total_runs=total_runs,
+            success_rate=success_rate,
+            total_cost_usd=total_cost,
+            total_tokens=total_tokens,
+            avg_duration=avg_duration,
+        )

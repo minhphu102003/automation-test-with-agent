@@ -1,26 +1,17 @@
 import os
 import shutil
 import tempfile
-import pandas as pd
-import io
-import asyncio
-import json
-from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
-from fastapi.responses import FileResponse, StreamingResponse, Response
+from typing import List, Optional
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
 
 from config.pricing import DEFAULT_MODEL
-from src.infrastructure.config.loader import settings
-
-# --- Domain & Infrastructure ---
-from src.infrastructure.monitoring.langfuse_reader import LangfuseReader
-from src.infrastructure.external.redis_stream_adapter import RedisStreamAdapter
 
 # --- Services & Use Cases ---
-from src.application.services.gpt_bridge import GPTBridgeService
+from src.application.use_cases.get_metrics import GetHistoryUseCase
 from src.application.use_cases.run_automation import RunAutomationUseCase
 from src.application.use_cases.run_excel import RunExcelAutomationUseCase
-from src.application.use_cases.get_metrics import GetHistoryUseCase
 from src.application.use_cases.run_gpt_automation import RunGptAutomationUseCase
 from src.application.use_cases.stream_job_updates import StreamJobUpdatesUseCase
 
@@ -35,6 +26,10 @@ from src.presentation.schemas.automation import (
 
 # Centralized Dependency Injection
 from src.infrastructure.di import providers
+
+
+router = APIRouter(prefix="/automation", tags=["automation"])
+
 
 @router.post("/run", response_model=AutomationRunResponse)
 async def run_automation(
@@ -110,7 +105,7 @@ async def get_history(
     limit: int = 50, 
     use_case: GetHistoryUseCase = Depends(providers.get_history_use_case)
 ):
-    return use_case.execute(limit=limit)
+    return [TestRunHistory.from_domain(item) for item in use_case.execute(limit=limit)]
 
 @router.post("/gpt-bridge/run", response_model=JobResponse)
 async def run_gpt_automation(

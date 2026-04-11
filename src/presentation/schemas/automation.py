@@ -1,7 +1,14 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
 from datetime import datetime
+from typing import Dict, Optional
+
+from pydantic import BaseModel, Field
+
 from config.pricing import DEFAULT_MODEL
+from src.domain.models.metrics import (
+    MetricsSummary as DomainMetricsSummary,
+    TestRunHistory as DomainTestRunHistory,
+    TokenUsage as DomainTokenUsage,
+)
 
 class AutomationRunRequest(BaseModel):
     task: str = Field(..., example="Go to google.com and search for browser-use")
@@ -30,6 +37,15 @@ class TokenUsage(BaseModel):
     total_tokens: int
     estimated_cost_usd: float
 
+    @classmethod
+    def from_domain(cls, usage: DomainTokenUsage) -> "TokenUsage":
+        return cls(
+            prompt_tokens=usage.prompt_tokens,
+            completion_tokens=usage.completion_tokens,
+            total_tokens=usage.total_tokens,
+            estimated_cost_usd=usage.estimated_cost_usd,
+        )
+
 class TestRunHistory(BaseModel):
     run_id: str
     task: str
@@ -40,12 +56,35 @@ class TestRunHistory(BaseModel):
     usage: TokenUsage
     success: bool
 
+    @classmethod
+    def from_domain(cls, history: DomainTestRunHistory) -> "TestRunHistory":
+        return cls(
+            run_id=history.run_id,
+            task=history.task,
+            model=history.model,
+            status=history.status,
+            start_time=history.start_time,
+            duration_seconds=history.duration_seconds,
+            usage=TokenUsage.from_domain(history.usage),
+            success=history.success,
+        )
+
 class MetricsSummary(BaseModel):
     total_runs: int
     success_rate: float
     total_cost_usd: float
     total_tokens: int
     avg_duration: float
+
+    @classmethod
+    def from_domain(cls, summary: DomainMetricsSummary) -> "MetricsSummary":
+        return cls(
+            total_runs=summary.total_runs,
+            success_rate=summary.success_rate,
+            total_cost_usd=summary.total_cost_usd,
+            total_tokens=summary.total_tokens,
+            avg_duration=summary.avg_duration,
+        )
 
 class TestCase(BaseModel):
     id: Optional[str] = Field(None, alias="Test Case ID")

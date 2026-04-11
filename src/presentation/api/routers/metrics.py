@@ -10,4 +10,4 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
 async def get_summary(
     use_case: GetMetricsSummaryUseCase = Depends(providers.get_metrics_summary_use_case)
 ):
-    return use_case.execute()
+    return MetricsSummary.from_domain(use_case.execute())
