@@ -174,3 +174,5 @@ credentials.json
 
 # Oh-My-Codex (omx)
 .omx/
+
+/data

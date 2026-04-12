@@ -39,6 +39,7 @@ async def run_automation(
     run_id, _ = await use_case.execute(
         request.task, 
         request.model,
+        profile_id=request.profile_id,
         url=request.url,
         cookies=request.cookies,
         access_token=request.access_token,

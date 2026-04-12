@@ -13,6 +13,7 @@ from src.domain.models.metrics import (
 class AutomationRunRequest(BaseModel):
     task: str = Field(..., example="Go to google.com and search for browser-use")
     model: str = Field(default=DEFAULT_MODEL, example=DEFAULT_MODEL)
+    profile_id: Optional[str] = Field(None, example="main-staging")
     url: Optional[str] = Field(None, example="https://example.com/dashboard")
     cookies: Optional[Dict[str, str]] = Field(None, example={"session": "12345"})
     access_token: Optional[str] = Field(None, example="ey... (JWT)")

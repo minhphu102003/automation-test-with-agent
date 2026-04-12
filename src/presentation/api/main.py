@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import sys
 import asyncio
 import os
@@ -18,14 +20,16 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
 # --- Domain & Infrastructure ---
+from src.infrastructure.external.auth_connector import HttpAuthConnector
 from src.infrastructure.monitoring.langfuse_reader import LangfuseReader
 from src.infrastructure.external.redis_stream_adapter import RedisStreamAdapter
 from src.infrastructure.external.minio_storage import MinioStorageAdapter
+from src.infrastructure.storage.json_profile_repository import JsonAuthProfileRepository
 from src.presentation.api.error_handlers import global_exception_handler
 from src.domain.exceptions.base import AppBaseException
 
 # --- Routers ---
-from src.presentation.api.routers import automation, metrics
+from src.presentation.api.routers import auth_profiles, automation, metrics
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,6 +40,8 @@ async def lifespan(app: FastAPI):
     langfuse_reader = LangfuseReader()
     messaging = RedisStreamAdapter()
     storage = MinioStorageAdapter()
+    auth_profile_repository = JsonAuthProfileRepository()
+    auth_connector = HttpAuthConnector()
     
     # 2. Ensure resources are ready
     try:
@@ -47,6 +53,8 @@ async def lifespan(app: FastAPI):
     app.state.langfuse_reader = langfuse_reader
     app.state.messaging = messaging
     app.state.storage = storage
+    app.state.auth_profile_repository = auth_profile_repository
+    app.state.auth_connector = auth_connector
     
     print(f"--- [STABLE] Backend Running on Port 8001 with {type(asyncio.get_event_loop()).__name__} ---")
     
@@ -64,13 +72,14 @@ app.add_exception_handler(Exception, global_exception_handler)
 app.add_exception_handler(AppBaseException, global_exception_handler)
 
 app.include_router(automation.router, prefix="/api/v1")
+app.include_router(auth_profiles.router, prefix="/api/v1")
 app.include_router(metrics.router, prefix="/api/v1")
 
 @app.get("/", response_class=HTMLResponse)
 async def get_landing():
     landing_path = os.path.join(project_root, "frontend/index.html")
     if not os.path.exists(landing_path):
-        return HTMLResponse(content=f"Error: index.html not found", status_code=404)
+        return HTMLResponse(content="Error: index.html not found", status_code=404)
     with open(landing_path, "r", encoding="utf-8") as f:
         return f.read()
 
